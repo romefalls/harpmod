@@ -1,2 +1,1 @@
-game.ReplicatedStorage.Events.Note:Fire("Piano finally works","I was just retarded",1)
-loadstring(game:HttpGet("https://raw.githubusercontent.com/GFXTI/Abena-Versions/main/Piano%20V1.4"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/GFXTI/d/main/Piano%20V2"))()
