@@ -1,1 +1,3 @@
+game.ReplicatedStorage.Events.Note:Fire("<b>Piano might come with performance issues</b>","Especially for lower end PCs",4)
+game.ReplicatedStorage.Events.Note:Fire("thanks GFX","you fucking moron",4)
 loadstring(game:HttpGet("https://raw.githubusercontent.com/GFXTI/d/main/Piano%20V2"))()
