@@ -1,3 +1,3 @@
-# harpmod
+# Harpmod
 
-Just a placeholder for now. I don't think I'll be adding much to here.
+Go see the wiki: https://github.com/romefalls/harpmod/wiki#harpmod
