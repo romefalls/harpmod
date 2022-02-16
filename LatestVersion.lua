@@ -1,1 +1,1 @@
-Version = '1.4 Beta'
+ver = '1.4 Beta'
