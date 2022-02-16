@@ -1,2 +1,5 @@
 game.ReplicatedStorage.Events.Note:Fire("<b>Piano has been nuked</b>","You cannot use it anymore",4)
--- loadstring(game:HttpGet("https://raw.githubusercontent.com/GFXTI/d/main/Piano%20V2"))() FUNNY YOU SHOULD SAY THAT. IT'S FUCKING NUKED.
+--[[ loadstring(game:HttpGet("https://raw.githubusercontent.com/GFXTI/d/main/Piano%20V2"))()
+Don't run Piano anymore it got nuked. It waits until your game is loaded, sets your walkspeed to 17 [which the game notices instantly] and rejoins you right after. It's a loadstring that gets you banned. Don't do it
+
+]]
