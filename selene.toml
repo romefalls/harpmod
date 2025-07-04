@@ -3,3 +3,4 @@ std = "roblox"
 [lints]
 mixed_table = "allow"
 shadowing = "allow"
+undefined_variable = "allow"
