@@ -351,7 +351,7 @@
     Menu.Catagories["3"]["3"].TextLabel.Font = GlobalFont
     Menu.Catagories["4"]["4"].TextLabel.Font = GlobalFont
     Menu.Rules.desc.Font = GlobalFont
-    Menu.Rules.desc.Text = "How to get started: \n 1. Don't be a dirty little FRIENDLYfaggot like Edd_E, Rylock, or 2J0Y. \n 2. Always keep in mind that the People's Republic of Harpmod shall not be challenged by antagonist entities. PRH is and forever will be a beautiful nation. \n 3. Always hate FRIENDLYs, FRIENDs, faggots and spics. \n 4. 动态网自由门 天安門 天安门 法輪功 李洪志 六四天安門事件 天安門大屠殺 反右派鬥爭 大躍進政策 文化大革命 \n 5. i suck romefalls' dick at a smile for hours at a time stare at his nutsack while i hold back my cum tonight \n \n 6. To get future updates of Harpmod and Piano Client, join this server: https://discord.gg/Y4Dxej2WRX"
+    Menu.Rules.desc.Text = "How to get started: \n 1. Don't be a dirty little FRIENDLYfriend like Edd_E, Rylock, or 2J0Y. \n 2. Always keep in mind that the People's Republic of Harpmod shall not be challenged by antagonist entities. PRH is and forever will be a beautiful nation. \n 3. Always hate FRIENDLYs, FRIENDs, friends and friends. \n 4. 动态网自由门 天安門 天安门 法輪功 李洪志 六四天安門事件 天安門大屠殺 反右派鬥爭 大躍進政策 文化大革命 \n 5. i suck romefalls' dick at a smile for hours at a time stare at his nutsack while i hold back my cum tonight \n \n 6. To get future updates of Harpmod and Piano Client, join this server: https://discord.gg/Y4Dxej2WRX"
     Menu.ImageLabel.ImageColor3 = Color3.fromRGB(5,5,5)
     Menu.ImageLabel.ImageTransparency = 0
     Menu.Cancel.ImageColor3 = Color3.fromRGB(88,0,0)
