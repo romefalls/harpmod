@@ -1,11 +1,10 @@
--- command_module.lua (snake_case style)
 local command_module = {}
 
 command_module.commands = {
     help = {
         description = "List all available commands",
         execute = function(args)
-            print("[Help] Commands available:")
+            print("[help] commands available:")
             for name, cmd in pairs(command_module.commands) do
                 print(" - " .. name .. ": " .. cmd.description)
             end
@@ -13,15 +12,15 @@ command_module.commands = {
     },
 
     kill = {
-        description = "Kills a player (for testing)",
+        description = "kills a player",
         execute = function(args)
             local target = args[1]
-            print("[Kill] Target:", target)
+            print("[kill] Target:", target)
         end
     },
 
     say = {
-        description = "Say something to chat",
+        description = "say something to chat",
         execute = function(args)
             local message = table.concat(args, " ")
             print("[Say]:", message)
@@ -38,7 +37,7 @@ function command_module.execute(command_text)
     if command then
         command.execute(tokens)
     else
-        warn("[Error] Unknown command: " .. command_name)
+        warn("[error] unknown command: " .. command_name)
     end
 end
 
