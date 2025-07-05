@@ -29,7 +29,7 @@ local game_event = {
 	menu_action = game_instance.events:WaitForChild("MenuActionEvent"),
 	reload_action = game_instance.events:WaitForChild("WeaponReloadEvent"),
 	menu = game_instance.events:WaitForChild("MenuEvent"),
-	tool = game_instance.events:WaitForChild("ToolsEvent")
+	tool = game_instance.events:WaitForChild("ToolsEvent"),
 }
 
 local player_data = svc.players.LocalPlayer:WaitForChild("PlayerData")
@@ -410,7 +410,6 @@ function reload_gun(amount)
 	reload_settings.last_reload_time = now
 end
 
-
 function make_node_on_spawn() -- one day
 	local args = {
 		1,
@@ -506,8 +505,10 @@ local on_render_stepped = {
 	end,
 	cola_god = function()
 		local cola = svc.players.LocalPlayer.Backpack:FindFirstChild("Mythic Bloxy Cola")
-		if not cola then return end
-		game_event.tool:FireServer({4,cola})
+		if not cola then
+			return
+		end
+		game_event.tool:FireServer({ 4, cola })
 	end,
 }
 
