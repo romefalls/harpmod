@@ -345,14 +345,14 @@ function shoot_gun(x, y, z, humanoid)
 		return
 	end
 	local args = {
-		[1] = 33, --opcode
-		[2] = CFrame.new(x, y, z), -- yes
-		[3] = 2, -- yes
-		[4] = humanoid, -- why yes
-		[5] = 100, -- yes
-		[6] = tool, -- probably
-		[7] = nil, -- probably maybe yes
-		[8] = 1, -- sometimes
+		[1] = 33, 
+		[2] = CFrame.new(x, y, z), 
+		[3] = 2,
+		[4] = humanoid, 
+		[5] = 100,
+		[6] = tool,
+		[7] = nil, 
+		[8] = 1,
 	}
 	game_event.menu_action:FireServer(unpack(args))
 end
