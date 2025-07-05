@@ -389,7 +389,7 @@ local on_render_stepped = {
 		end
 	end,
     auto_cola = function()
-        local character = svc.players.LocalPlayer:WaitForChild("Character")
+        local character = svc.players.LocalPlayer.Character
         if not character then return end
         local humanoid = character:WaitForChild("Humanoid")
         if not humanoid then return end
