@@ -18,6 +18,7 @@ local svc = {
 	rs = game:GetService("ReplicatedStorage"),
 	debris = game:GetService("Debris"),
 	run = game:GetService("RunService"),
+    tween = game:GetService("TweenService"),
 }
 
 local game_instance = {
@@ -44,6 +45,15 @@ local rage = {
 local legit = {
 	autobuy = true,
 	max_hunger = true,
+}
+
+local tsi = {
+    exponentiate_out = function(t)
+        return TweenInfo.new(t,Enum.EasingStyle.Exponential,Enum.EasingDirection.Out)
+    end,
+    sine_inout = function(t)
+        return TweenInfo.new(t,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut)
+    end,
 }
 
 local ammo_type = {
@@ -118,7 +128,12 @@ local debug = {
 	},
 }
 
+function tween(i,t,p)
+    return svc.tween:Create(i,t,p):Play()
+end
+
 function cast_ray(origin, final)
+    coroutine.wrap(function()
 	local ray_part = Instance.new("Part")
 	ray_part.Anchored = true
 	ray_part.CanCollide = false
@@ -126,7 +141,7 @@ function cast_ray(origin, final)
 	ray_part.CanTouch = false
 	ray_part.Material = Enum.Material.Neon
 	ray_part.Color = Color3.fromRGB(255, 0, 0)
-	ray_part.Transparency = 0.6
+	ray_part.Transparency = 0
 
 	local direction = final - origin
 	local distance = direction.Magnitude
@@ -135,8 +150,9 @@ function cast_ray(origin, final)
 	ray_part.Size = Vector3.new(0.1, 0.1, distance)
 	ray_part.CFrame = CFrame.new(mid_point, final)
 	ray_part.Parent = workspace
-
+    tween(ray_part,tsi.sine_inout(0.2),{Transparency = 1})
 	svc.debris:AddItem(ray_part, 0.2)
+    end)()
 end
 
 function get_ammo_type(gun_name)
@@ -224,11 +240,11 @@ end
 
 local killaura_settings = {
 	cell = {
-		size = 4,
+		size = 2,
 		last_cell = nil,
 		pending_update = true,
 	},
-	radius = 50,
+	radius = 300,
 	last_kill_time = 0,
 	shoot_delay = 0.0000001,
 	last_target_index = 1,
@@ -316,6 +332,15 @@ end
 
 function drink_cola()
     print("man you wish you had autocola right now")
+end
+
+function make_node_on_spawn()
+    local args = {
+	1,
+	"Node",
+	CFrame.new(-320.34494, 154.018173, -161.205093, -0.934287548, -2.03324539e-08, -0.356520385, -2.12887876e-08, 1, -1.24145705e-09, 0.356520385, 6.43000897e-09, -0.934287548)
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("BuildingEvent"):FireServer(unpack(args))
 end
 
 local on_render_stepped = {
