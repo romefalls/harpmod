@@ -1,9 +1,28 @@
--- todo: populate svc table
+--[[
 
+todo:
+
+svc.players.localplayer should be just 1 upvalue
+fix autobuy
+modules
+
+killaura:
+- whites yellows reds
+- blacklist skips all checks and just kills
+- sentry mode for killzone as guard badass
+- debug cell drawing gives u negative fps 
+
+renderstepped:
+- just functions (look cool mayb)
+
+
+
+]]
 local svc = {
 	players = game:GetService("Players"),
 	rs = game:GetService("ReplicatedStorage"),
 	debris = game:GetService("Debris"),
+    run = game:GetService("RunService"),
 }
 
 local game_instance = {
@@ -16,7 +35,23 @@ local game_event = {
 	menu = game_instance.events:WaitForChild("MenuEvent"),
 }
 
+
+local player_data = svc.players.LocalPlayer:WaitForChild("PlayerData")
 local note = game.ReplicatedStorage.Events.Note
+
+
+local rage = {
+	killaura = true,
+	aimbot = false,
+	auto_reload = true,
+    auto_modder = true,
+}
+
+local legit = {
+	autobuy = true,
+	max_hunger = true,
+}
+
 
 local ammo_type = {
 	heavy = "Heavy Ammo",
@@ -168,11 +203,13 @@ for gun_name, data in pairs(modded_gun) do
 end
 
 function modify_gun(old_gun, new_gun_name, ammo_type, max_ammo, damage, gun_sound)
+    if rage.auto_modder ~= true then
 	note:Fire("mod " .. old_gun, "Make sure to have your " .. old_gun .. " unequipped", 5)
-	local Gun = game:GetService("Players").LocalPlayer.Backpack:WaitForChild(old_gun)
-	Gun.LocalScript:Destroy()
-	require(game:GetService("ReplicatedStorage").Modules.TS[(false and "ANS") or "GNS"]).Initiate(
-		Gun,
+    end
+	local gun = svc.players.LocalPlayer.Backpack:WaitForChild(old_gun)
+	gun.LocalScript:Destroy()
+	require(svc.rs.Modules.TS[(false and "ANS") or "GNS"]).Initiate(
+		gun,
 		2.2,
 		max_ammo,
 		0,
@@ -186,12 +223,11 @@ function modify_gun(old_gun, new_gun_name, ammo_type, max_ammo, damage, gun_soun
 		2,
 		2
 	)
-	Gun.Name = new_gun_name
+	gun.Name = new_gun_name
+    if rage.auto_modder ~= true then -- whatever
 	note:Fire("Done!", "Modding is done. Equip your " .. new_gun_name .. " now", 5)
+    end
 end
-
--- shouldnt target whitenames and whitelisted unless theyre on the blacklist
-function buy_ammo(what) end
 
 local killaura_settings = {
 	cell = {
@@ -246,17 +282,6 @@ local killaura_func = {
 	end,
 }
 
-local rage = {
-	killaura = true,
-	aimbot = false,
-	auto_reload = true,
-    auto_modder = true,
-}
-
-local legit = {
-	autobuy = true,
-	max_hunger = true,
-}
 
 function shoot_gun(x, y, z, humanoid)
 	local tool = svc.players.LocalPlayer.Character:FindFirstChildOfClass("Tool")
@@ -295,10 +320,9 @@ function reload_gun(amount)
 	reload_settings.last_reload_time = now
 end
 
-game:GetService("RunService").RenderStepped:Connect(function(dt)
+svc.run.RenderStepped:Connect(function(dt)
 	if rage.killaura == true then
 		local get_pos = svc.players.LocalPlayer.Character:WaitForChild("HumanoidRootPart").CFrame.Position
-		local cell = get_pos // 4
 
 		local current_cell = killaura_func.get_current_cell()
 		if current_cell ~= killaura_settings.cell.last_cell then
@@ -363,9 +387,8 @@ game:GetService("RunService").RenderStepped:Connect(function(dt)
 	end
 end)
 
-local player_data = svc.players.LocalPlayer:WaitForChild("PlayerData")
 
-for _, ammo_name in ipairs(ammo_type) do -- i know this doesnt work
+for _, ammo_name in next,ammo_type do -- i know this doesnt work
 	local ammo_stat = player_data:WaitForChild(ammo_name)
 	print(ammo_stat, ammo_name)
 	ammo_stat:GetPropertyChangedSignal("Value"):Connect(function()
