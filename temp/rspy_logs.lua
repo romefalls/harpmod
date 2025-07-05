@@ -71,3 +71,20 @@ local args = {
 	Instance.new("Tool", nil)
 }
 game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("ToolsEvent"):FireServer(unpack(args))
+
+-- mythic cola
+
+local args = {
+	4,
+	game:GetService("Players").LocalPlayer:WaitForChild("Backpack"):WaitForChild("Mythic Bloxy Cola")
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("ToolsEvent"):FireServer(unpack(args))
+
+-- buy printer
+
+local args = {
+	2,
+	"Money Printer Advanced",
+	[4] = 8
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("MenuEvent"):FireServer(unpack(args))
