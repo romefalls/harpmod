@@ -18,7 +18,7 @@ local svc = {
 	rs = game:GetService("ReplicatedStorage"),
 	debris = game:GetService("Debris"),
 	run = game:GetService("RunService"),
-    tween = game:GetService("TweenService"),
+	tween = game:GetService("TweenService"),
 }
 
 local game_instance = {
@@ -48,12 +48,12 @@ local legit = {
 }
 
 local tsi = {
-    exponentiate_out = function(t)
-        return TweenInfo.new(t,Enum.EasingStyle.Exponential,Enum.EasingDirection.Out)
-    end,
-    sine_inout = function(t)
-        return TweenInfo.new(t,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut)
-    end,
+	exponentiate_out = function(t)
+		return TweenInfo.new(t, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
+	end,
+	sine_inout = function(t)
+		return TweenInfo.new(t, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+	end,
 }
 
 local ammo_type = {
@@ -128,31 +128,57 @@ local debug = {
 	},
 }
 
-function tween(i,t,p)
-    return svc.tween:Create(i,t,p):Play()
+function tween(i, t, p)
+	return svc.tween:Create(i, t, p):Play()
+end
+
+function draw_ray_line(origin, final, color)
+	coroutine.wrap(function()
+		local ray_part = Instance.new("Part")
+		ray_part.Anchored = true
+		ray_part.CanCollide = false
+		ray_part.CanQuery = false
+		ray_part.CanTouch = false
+		ray_part.Material = Enum.Material.Neon
+		ray_part.Color = color
+		ray_part.Transparency = 0
+
+		local direction = final - origin
+		local distance = direction.Magnitude
+		local mid_point = origin + (direction / 2)
+
+		ray_part.Size = Vector3.new(0.1, 0.1, distance)
+		ray_part.CFrame = CFrame.new(mid_point, final)
+		ray_part.Parent = workspace
+		tween(ray_part, tsi.sine_inout(0.5), { Transparency = 1 })
+		svc.debris:AddItem(ray_part, 0.5)
+	end)()
 end
 
 function cast_ray(origin, final)
-    coroutine.wrap(function()
-	local ray_part = Instance.new("Part")
-	ray_part.Anchored = true
-	ray_part.CanCollide = false
-	ray_part.CanQuery = false
-	ray_part.CanTouch = false
-	ray_part.Material = Enum.Material.Neon
-	ray_part.Color = Color3.fromRGB(255, 0, 0)
-	ray_part.Transparency = 0
+	local ray_params = RaycastParams.new()
+	ray_params.FilterType = Enum.RaycastFilterType.Exclude
+	ray_params.FilterDescendantsInstances = { svc.players.LocalPlayer.Character }
+	ray_params.IgnoreWater = true
 
-	local direction = final - origin
-	local distance = direction.Magnitude
-	local mid_point = origin + (direction / 2)
+	local direction = (final - origin)
+	local result = workspace:Raycast(origin, direction, ray_params)
 
-	ray_part.Size = Vector3.new(0.1, 0.1, distance)
-	ray_part.CFrame = CFrame.new(mid_point, final)
-	ray_part.Parent = workspace
-    tween(ray_part,tsi.sine_inout(0.2),{Transparency = 1})
-	svc.debris:AddItem(ray_part, 0.2)
-    end)()
+	if result then
+		local hit_pos = result.Position
+
+		local distance_to_target = (hit_pos - final).Magnitude
+		if distance_to_target < 2 then
+			draw_ray_line(origin, hit_pos, Color3.fromRGB(0, 255, 0))
+			return true
+		else
+			draw_ray_line(origin, hit_pos, Color3.fromRGB(255, 0, 0))
+			return false
+		end
+	else
+		draw_ray_line(origin, origin + direction, Color3.fromRGB(100, 100, 100))
+		return false
+	end
 end
 
 function get_ammo_type(gun_name)
@@ -331,16 +357,29 @@ function reload_gun(amount)
 end
 
 function drink_cola()
-    print("man you wish you had autocola right now")
+	print("man you wish you had autocola right now")
 end
 
-function make_node_on_spawn()
-    local args = {
-	1,
-	"Node",
-	CFrame.new(-320.34494, 154.018173, -161.205093, -0.934287548, -2.03324539e-08, -0.356520385, -2.12887876e-08, 1, -1.24145705e-09, 0.356520385, 6.43000897e-09, -0.934287548)
-}
-game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("BuildingEvent"):FireServer(unpack(args))
+function make_node_on_spawn() -- one day
+	local args = {
+		1,
+		"Node",
+		CFrame.new(
+			-320.34494,
+			154.018173,
+			-161.205093,
+			-0.934287548,
+			-2.03324539e-08,
+			-0.356520385,
+			-2.12887876e-08,
+			1,
+			-1.24145705e-09,
+			0.356520385,
+			6.43000897e-09,
+			-0.934287548
+		),
+	}
+	game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("BuildingEvent"):FireServer(unpack(args))
 end
 
 local on_render_stepped = {
@@ -369,8 +408,9 @@ local on_render_stepped = {
 						local target = targets[killaura_settings.last_target_index]
 						local pos = target.part.Position
 						local hum = target.part.Parent:WaitForChild("Humanoid")
-						shoot_gun(pos.X, pos.Y, pos.Z, hum)
-						cast_ray(get_pos, pos)
+						if cast_ray(get_pos, pos) then
+							shoot_gun(pos.X, pos.Y, pos.Z, hum)
+						end
 					end
 				end)
 			end
@@ -413,18 +453,20 @@ local on_render_stepped = {
 			svc.players.LocalPlayer.PlayerData.Hunger.Value = 100
 		end
 	end,
-    auto_cola = function()
-        local character = svc.players.LocalPlayer.Character
-        if not character then return end
-        local humanoid = character:WaitForChild("Humanoid")
-        if not humanoid then return end
-        if humanoid.Health < 50 then
-            drink_cola()
-        end
-    end,
+	auto_cola = function()
+		local character = svc.players.LocalPlayer.Character
+		if not character then
+			return
+		end
+		local humanoid = character:WaitForChild("Humanoid")
+		if not humanoid then
+			return
+		end
+		if humanoid.Health < 50 then
+			drink_cola()
+		end
+	end,
 }
-
-
 
 for _, ammo_name in next, ammo_type do -- i know this doesnt work
 	local ammo_stat = player_data:WaitForChild(ammo_name)
@@ -446,14 +488,13 @@ for _, ammo_name in next, ammo_type do -- i know this doesnt work
 end
 
 svc.run.RenderStepped:Connect(function(dt)
-    for _, v in next, on_render_stepped do
-        xpcall(function()
-            task.spawn(v)
-        end, function(err)
-            warn("are you stupid: ", err) 
-        end)
-    end
+	for _, v in next, on_render_stepped do
+		xpcall(function()
+			task.spawn(v)
+		end, function(err)
+			warn("are you stupid: ", err)
+		end)
+	end
 end)
-
 
 print("hello world")
