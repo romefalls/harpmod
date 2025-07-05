@@ -261,7 +261,7 @@ local killaura_func = {
 
 		for _, player in pairs(svc.players:GetPlayers()) do
 			if player ~= local_player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-				if not killaura_whitelist[player] then
+				if not killaura_whitelist[player.Name] then
 					if #killaura_blacklist == 0 or table.find(killaura_blacklist, player.Name) then
 						local enemy_hrp = player.Character.HumanoidRootPart
 						local distance = (enemy_hrp.Position - my_hrp.Position).Magnitude
