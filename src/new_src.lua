@@ -384,20 +384,7 @@ function make_node_on_spawn() -- one day
 	local args = {
 		1,
 		"Node",
-		CFrame.new(
-			-320.34494,
-			154.018173,
-			-161.205093,
-			-0.934287548,
-			-2.03324539e-08,
-			-0.356520385,
-			-2.12887876e-08,
-			1,
-			-1.24145705e-09,
-			0.356520385,
-			6.43000897e-09,
-			-0.934287548
-		),
+		CFrame.new(1,2,3),
 	}
 	game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("BuildingEvent"):FireServer(unpack(args))
 end
