@@ -29,6 +29,7 @@ local game_event = {
 	menu_action = game_instance.events:WaitForChild("MenuActionEvent"),
 	reload_action = game_instance.events:WaitForChild("WeaponReloadEvent"),
 	menu = game_instance.events:WaitForChild("MenuEvent"),
+	tool = game_instance.events:WaitForChild("ToolsEvent")
 }
 
 local player_data = svc.players.LocalPlayer:WaitForChild("PlayerData")
@@ -39,7 +40,8 @@ local rage = {
 	aimbot = false,
 	auto_reload = true,
 	auto_modder = true,
-	auto_cola = true,
+	auto_cola = true, -- for normal ones
+	cola_god = true, -- for mythic one
 }
 
 local legit = {
@@ -309,18 +311,18 @@ end
 
 local killaura_settings = {
 	cell = {
-		size = 2,
+		size = 4,
 		last_cell = nil,
 		pending_update = true,
 	},
 	target = {
-		white_names = false,
-		yellow_names = false,
+		white_names = true,
+		yellow_names = true,
 		red_names = true,
 	},
 	radius = 200,
 	last_kill_time = 0,
-	shoot_delay = 0.05,
+	shoot_delay = 0.045,
 	last_target_index = 1,
 }
 
@@ -408,7 +410,6 @@ function reload_gun(amount)
 	reload_settings.last_reload_time = now
 end
 
-function drink_cola() end
 
 function make_node_on_spawn() -- one day
 	local args = {
@@ -502,6 +503,11 @@ local on_render_stepped = {
 		if humanoid.Health < 50 then
 			drink_cola()
 		end
+	end,
+	cola_god = function()
+		local cola = svc.players.LocalPlayer.Backpack:FindFirstChild("Mythic Bloxy Cola")
+		if not cola then return end
+		game_event.tool:FireServer({4,cola})
 	end,
 }
 
