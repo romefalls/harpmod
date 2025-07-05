@@ -12,17 +12,12 @@ killaura:
 - sentry mode for killzone as guard badass
 - debug cell drawing gives u negative fps 
 
-renderstepped:
-- just functions (look cool mayb)
-
-
-
 ]]
 local svc = {
 	players = game:GetService("Players"),
 	rs = game:GetService("ReplicatedStorage"),
 	debris = game:GetService("Debris"),
-    run = game:GetService("RunService"),
+	run = game:GetService("RunService"),
 }
 
 local game_instance = {
@@ -35,24 +30,21 @@ local game_event = {
 	menu = game_instance.events:WaitForChild("MenuEvent"),
 }
 
-
 local player_data = svc.players.LocalPlayer:WaitForChild("PlayerData")
 local note = game.ReplicatedStorage.Events.Note
-
 
 local rage = {
 	killaura = true,
 	aimbot = false,
 	auto_reload = true,
-    auto_modder = true,
-    auto_cola = true,
+	auto_modder = true,
+	auto_cola = true,
 }
 
 local legit = {
 	autobuy = true,
 	max_hunger = true,
 }
-
 
 local ammo_type = {
 	heavy = "Heavy Ammo",
@@ -204,9 +196,9 @@ for gun_name, data in pairs(modded_gun) do
 end
 
 function modify_gun(old_gun, new_gun_name, ammo_type, max_ammo, damage, gun_sound)
-    if rage.auto_modder ~= true then
-	note:Fire("mod " .. old_gun, "Make sure to have your " .. old_gun .. " unequipped", 5)
-    end
+	if rage.auto_modder ~= true then
+		note:Fire("mod " .. old_gun, "Make sure to have your " .. old_gun .. " unequipped", 5)
+	end
 	local gun = svc.players.LocalPlayer.Backpack:WaitForChild(old_gun)
 	gun.LocalScript:Destroy()
 	require(svc.rs.Modules.TS[(false and "ANS") or "GNS"]).Initiate(
@@ -225,9 +217,9 @@ function modify_gun(old_gun, new_gun_name, ammo_type, max_ammo, damage, gun_soun
 		2
 	)
 	gun.Name = new_gun_name
-    if rage.auto_modder ~= true then -- whatever
-	note:Fire("Done!", "Modding is done. Equip your " .. new_gun_name .. " now", 5)
-    end
+	if rage.auto_modder ~= true then -- whatever
+		note:Fire("Done!", "Modding is done. Equip your " .. new_gun_name .. " now", 5)
+	end
 end
 
 local killaura_settings = {
@@ -238,14 +230,15 @@ local killaura_settings = {
 	},
 	radius = 50,
 	last_kill_time = 0,
-	shoot_delay = 0.05,
+	shoot_delay = 0.0000001,
 	last_target_index = 1,
 }
 
 local killaura_whitelist = {
-    Zhawrina = true,
-    Z6MN7P2A9Q79hUILLUiw = true,
+	Zhawrina = true,
+	Z6MN7P2A9Q79hUILLUiw = true,
 }
+
 local killaura_blacklist = {}
 
 local killaura_func = {
@@ -284,7 +277,6 @@ local killaura_func = {
 	end,
 }
 
-
 function shoot_gun(x, y, z, humanoid)
 	local tool = svc.players.LocalPlayer.Character:FindFirstChildOfClass("Tool")
 	if not tool then
@@ -322,75 +314,94 @@ function reload_gun(amount)
 	reload_settings.last_reload_time = now
 end
 
-svc.run.RenderStepped:Connect(function(dt)
-	if rage.killaura == true then
-		local get_pos = svc.players.LocalPlayer.Character:WaitForChild("HumanoidRootPart").CFrame.Position
+function drink_cola()
+    print("man you wish you had autocola right now")
+end
 
-		local current_cell = killaura_func.get_current_cell()
-		if current_cell ~= killaura_settings.cell.last_cell then
-			killaura_settings.cell.last_cell = current_cell
-			killaura_settings.cell.pending_update = true
-		end
-		if
-			killaura_settings.cell.pending_update
-			and tick() - killaura_settings.last_kill_time > killaura_settings.shoot_delay
-		then
-			killaura_settings.cell.pending_update = false
-			killaura_settings.last_kill_time = tick()
-			task.spawn(function()
-				local targets = killaura_func.get_nearby_cell_targets()
-				if #targets > 0 then
-					killaura_settings.last_target_index = killaura_settings.last_target_index + 1
-					if killaura_settings.last_target_index > #targets then
-						killaura_settings.last_target_index = 1
+local on_render_stepped = {
+	killaura = function()
+		if rage.killaura == true then
+			local get_pos = svc.players.LocalPlayer.Character:WaitForChild("HumanoidRootPart").CFrame.Position
+
+			local current_cell = killaura_func.get_current_cell()
+			if current_cell ~= killaura_settings.cell.last_cell then
+				killaura_settings.cell.last_cell = current_cell
+				killaura_settings.cell.pending_update = true
+			end
+			if
+				killaura_settings.cell.pending_update
+				and tick() - killaura_settings.last_kill_time > killaura_settings.shoot_delay
+			then
+				killaura_settings.cell.pending_update = false
+				killaura_settings.last_kill_time = tick()
+				task.spawn(function()
+					local targets = killaura_func.get_nearby_cell_targets()
+					if #targets > 0 then
+						killaura_settings.last_target_index = killaura_settings.last_target_index + 1
+						if killaura_settings.last_target_index > #targets then
+							killaura_settings.last_target_index = 1
+						end
+						local target = targets[killaura_settings.last_target_index]
+						local pos = target.part.Position
+						local hum = target.part.Parent:WaitForChild("Humanoid")
+						shoot_gun(pos.X, pos.Y, pos.Z, hum)
+						cast_ray(get_pos, pos)
 					end
-					local target = targets[killaura_settings.last_target_index]
-					local pos = target.part.Position
-					local hum = target.part.Parent:WaitForChild("Humanoid")
-					shoot_gun(pos.X, pos.Y, pos.Z, hum)
-					cast_ray(get_pos, pos)
-				end
-			end)
-		end
-		if debug.enabled then
-			local range = math.ceil(killaura_settings.radius / killaura_settings.cell.size)
-			local current_cell = get_pos // killaura_settings.cell.size
-			for x = -range, range do
-				for y = -range, range do
-					for z = -range, range do
-						local offset = Vector3.new(x, y, z)
-						local cell = current_cell + offset
-						local center_pos = (cell * killaura_settings.cell.size)
-							+ Vector3.new(
-								killaura_settings.cell.size / 2,
-								killaura_settings.cell.size / 2,
-								killaura_settings.cell.size / 2
-							)
+				end)
+			end
+			if debug.enabled then
+				local range = math.ceil(killaura_settings.radius / killaura_settings.cell.size)
+				local current_cell = get_pos // killaura_settings.cell.size
+				for x = -range, range do
+					for y = -range, range do
+						for z = -range, range do
+							local offset = Vector3.new(x, y, z)
+							local cell = current_cell + offset
+							local center_pos = (cell * killaura_settings.cell.size)
+								+ Vector3.new(
+									killaura_settings.cell.size / 2,
+									killaura_settings.cell.size / 2,
+									killaura_settings.cell.size / 2
+								)
 
-						if (center_pos - get_pos).Magnitude <= killaura_settings.radius then
-							debug.killaura.draw_cells(cell, Color3.fromRGB(0, 255, 0))
+							if (center_pos - get_pos).Magnitude <= killaura_settings.radius then
+								debug.killaura.draw_cells(cell, Color3.fromRGB(0, 255, 0))
+							end
 						end
 					end
 				end
 			end
 		end
-	end
+	end,
+	aimbot = function()
+		if rage.aimbot == true then
+			print("are you stupid")
+		end
+	end,
+	auto_reload = function()
+		if rage.auto_reload == true then
+			reload_gun(5)
+		end
+	end,
+	max_hunger = function()
+		if legit.max_hunger == true then
+			svc.players.LocalPlayer.PlayerData.Hunger.Value = 100
+		end
+	end,
+    auto_cola = function()
+        local character = svc.players.LocalPlayer:WaitForChild("Character")
+        if not character then return end
+        local humanoid = character:WaitForChild("Humanoid")
+        if not humanoid then return end
+        if humanoid.Health < 50 then
+            drink_cola()
+        end
+    end,
+}
 
-	if rage.aimbot == true then
-        print("are you stupid")
-	end
-
-	if rage.auto_reload == true then
-		reload_gun(5)
-	end
-
-	if legit.max_hunger == true then
-		svc.players.LocalPlayer.PlayerData.Hunger.Value = 100
-	end
-end)
 
 
-for _, ammo_name in next,ammo_type do -- i know this doesnt work
+for _, ammo_name in next, ammo_type do -- i know this doesnt work
 	local ammo_stat = player_data:WaitForChild(ammo_name)
 	print(ammo_stat, ammo_name)
 	ammo_stat:GetPropertyChangedSignal("Value"):Connect(function()
@@ -408,5 +419,16 @@ for _, ammo_name in next,ammo_type do -- i know this doesnt work
 		end
 	end)
 end
+
+svc.run.RenderStepped:Connect(function(dt)
+    for _, v in next, on_render_stepped do
+        xpcall(function()
+            task.spawn(v)
+        end, function(err)
+            warn("are you stupid: ", err) 
+        end)
+    end
+end)
+
 
 print("hello world")
