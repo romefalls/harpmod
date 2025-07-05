@@ -62,3 +62,12 @@ local args = {
 	[8] = 1
 }
 game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("MenuActionEvent"):FireServer(unpack(args))
+
+
+--cola drink
+
+local args = {
+	4,
+	Instance.new("Tool", nil)
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("ToolsEvent"):FireServer(unpack(args))

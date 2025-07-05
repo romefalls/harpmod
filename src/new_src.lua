@@ -45,6 +45,7 @@ local rage = {
 	aimbot = false,
 	auto_reload = true,
     auto_modder = true,
+    auto_cola = true,
 }
 
 local legit = {
@@ -242,7 +243,8 @@ local killaura_settings = {
 }
 
 local killaura_whitelist = {
-	asdasdasd = true,
+    Zhawrina = true,
+    Z6MN7P2A9Q79hUILLUiw = true,
 }
 local killaura_blacklist = {}
 
