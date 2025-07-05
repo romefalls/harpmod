@@ -107,6 +107,56 @@ local gun = {
 		-- ...
 	},
 }
+local default_modded_gun_properties = {
+	new_gun_name = "hi bro",
+	sound = 4,
+}
+
+local modded_gun_data = {
+	-- pistols
+	Deagle = {
+		new_gun_name = "DX177",
+		sound = 9,
+	},
+	USP = {
+		new_gun_name = "XM9",
+		sound = 18,
+	},
+
+	-- smgs
+	Tec9 = {
+		new_gun_name = "Dylan's Acquaintance",
+		sound = 12,
+	},
+
+	-- rifles
+	Garand = {
+		new_gun_name = "M4 Garand",
+		sound = 19,
+	},
+	AK = {
+		new_gun_name = "AN-94",
+		sound = 19,
+	},
+}
+for _, gun in pairs(modded_gun_data) do
+	setmetatable(gun, {
+		__index = default_modded_gun_properties,
+	})
+end
+
+function create_default_gun()
+	return setmetatable({}, { __index = default_modded_gun_properties })
+end
+
+local modded_gun = setmetatable({}, {
+	__index = function(_, key)
+		if modded_gun_data[key] then
+			return modded_gun_data[key]
+		end
+		return create_default_gun()
+	end,
+})
 
 local debug = {
 	enabled = false,
@@ -150,7 +200,7 @@ function draw_ray_line(origin, final, color, transparency)
 		ray_part.Size = Vector3.new(0.1, 0.1, distance)
 		ray_part.CFrame = CFrame.new(mid_point, final)
 		ray_part.Parent = workspace
-		tween(ray_part, tsi.sine_inout(0.5), { Transparency = 1, Size = Vector3.new(0, 0, distance)})
+		tween(ray_part, tsi.sine_inout(0.5), { Transparency = 1, Size = Vector3.new(0, 0, distance) })
 		svc.debris:AddItem(ray_part, 0.5)
 	end)()
 end
@@ -197,53 +247,16 @@ function buy_item_from_store(what)
 		[1] = 2,
 		[2] = what,
 		[3] = nil,
-		[4] = 8
+		[4] = 8,
 	}
 	game_event.menu:FireServer(unpack(args))
 end
-
-local modded_gun = { --[[
-i made this table because i thought it mattered
-i dont think it does because most of it is just serversided
-but ill keep it here because i worked way too long on it
-and also because it just looks dope
-]]
-	-- pistols
-
-	Deagle = {
-		new_gun_name = "DX177",
-		sound = 9,
-	},
-	USP = {
-		new_gun_name = "XM9",
-		sound = 18,
-	},
-
-	-- smgs
-
-	Tec9 = {
-		new_gun_name = "Dylan's Acquaintance",
-		sound = 12,
-	},
-
-	-- rifles
-
-	Garand = {
-		new_gun_name = "M4 Garand",
-		damage = 35, -- idfk
-		sound = 19,
-	},
-	AK = {
-		new_gun_name = "AN-94",
-		sound = 19,
-	},
-}
 
 for gun_name, data in pairs(modded_gun) do
 	data.ammo_type = get_ammo_type(gun_name)
 end
 
-function modify_gun(old_gun, new_gun_name, ammo_type, max_ammo, damage, gun_sound)
+function modify_gun(old_gun, new_gun_name, ammo_type, gun_sound)
 	if rage.auto_modder ~= true then
 		note:Fire("mod " .. old_gun, "Make sure to have your " .. old_gun .. " unequipped", 5)
 	end
@@ -252,14 +265,14 @@ function modify_gun(old_gun, new_gun_name, ammo_type, max_ammo, damage, gun_soun
 	require(svc.rs.Modules.TS[(false and "ANS") or "GNS"]).Initiate(
 		gun,
 		2.2,
-		max_ammo,
+		100,
 		0,
-		damage,
+		100,
 		0,
 		gun_sound,
 		4,
 		nil,
-		ammo_type .. " Ammo",
+		ammo_type,
 		1,
 		2,
 		2
@@ -363,7 +376,7 @@ function reload_gun(amount)
 end
 
 function drink_cola()
-	print("man you wish you had autocola right now")
+
 end
 
 function make_node_on_spawn() -- one day
@@ -474,9 +487,8 @@ local on_render_stepped = {
 	end,
 }
 
-for _, ammo_name in next, ammo_type do -- i know this doesnt work
+for _, ammo_name in next, ammo_type do
 	local ammo_stat = player_data:WaitForChild(ammo_name)
-	print(ammo_stat, ammo_name) -- what am i doing with my life
 	ammo_stat:GetPropertyChangedSignal("Value"):Connect(function()
 		if legit.autobuy == true then
 			if ammo_stat.Value < 20 then
@@ -491,6 +503,29 @@ for _, ammo_name in next, ammo_type do -- i know this doesnt work
 		end
 	end)
 end
+
+svc.players.LocalPlayer.Backpack.ChildAdded:Connect(function(child)
+	if rage.auto_modder == true then
+		local handle = child:FindFirstChild("Handle")
+		if not handle then
+			return
+		end
+		local has_fire = handle:FindFirstChild("Fire") -- i am way too lazy to find another way to check if this is a gun
+		local has_reload = handle:FindFirstChild("Reload")
+		if not has_fire and not has_reload then
+			return
+		end
+
+		local gun_name = child.Name
+		local mod_data = modded_gun[gun_name]
+
+		local new_name = mod_data.new_gun_name
+		local sound = mod_data.sound
+		local ammo = get_ammo_type(gun_name)
+
+		modify_gun(gun_name, new_name, ammo, sound)
+	end
+end)
 
 svc.run.RenderStepped:Connect(function(dt)
 	for _, v in next, on_render_stepped do
