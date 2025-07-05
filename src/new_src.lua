@@ -193,7 +193,13 @@ function get_ammo_type(gun_name)
 end
 
 function buy_item_from_store(what)
-	game_event.menu:FireServer({ 2, what, [4] = 8 })
+	local args = {
+		[1] = 2,
+		[2] = what,
+		[3] = nil,
+		[4] = 8
+	}
+	game_event.menu:FireServer(unpack(args))
 end
 
 local modded_gun = { --[[
@@ -270,7 +276,7 @@ local killaura_settings = {
 		last_cell = nil,
 		pending_update = true,
 	},
-	radius = 300,
+	radius = 200,
 	last_kill_time = 0,
 	shoot_delay = 0.05,
 	last_target_index = 1,
@@ -470,14 +476,13 @@ local on_render_stepped = {
 
 for _, ammo_name in next, ammo_type do -- i know this doesnt work
 	local ammo_stat = player_data:WaitForChild(ammo_name)
-	print(ammo_stat, ammo_name)
+	print(ammo_stat, ammo_name) -- what am i doing with my life
 	ammo_stat:GetPropertyChangedSignal("Value"):Connect(function()
 		if legit.autobuy == true then
 			if ammo_stat.Value < 20 then
 				local key = ammo_type_to_key[ammo_name]
 				local item_name_in_shop = ammo_type_in_shop[key]
 				if item_name_in_shop then
-					print("buying " .. item_name_in_shop)
 					buy_item_from_store(item_name_in_shop)
 				else
 					warn("no matching shop item for", ammo_name)
