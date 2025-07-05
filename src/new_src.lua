@@ -107,6 +107,7 @@ local gun = {
 		-- ...
 	},
 }
+
 local default_modded_gun_properties = {
 	new_gun_name = "hi bro",
 	sound = 4,
