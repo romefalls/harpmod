@@ -22,7 +22,7 @@ local svc = {
 	players = game:GetService("Players"),
 	rs = game:GetService("ReplicatedStorage"),
 	debris = game:GetService("Debris"),
-	run = game:GetService("RunService"),
+    run = game:GetService("RunService"),
 }
 
 local game_instance = {
@@ -35,20 +35,23 @@ local game_event = {
 	menu = game_instance.events:WaitForChild("MenuEvent"),
 }
 
+
 local player_data = svc.players.LocalPlayer:WaitForChild("PlayerData")
 local note = game.ReplicatedStorage.Events.Note
+
 
 local rage = {
 	killaura = true,
 	aimbot = false,
 	auto_reload = true,
-	auto_modder = true,
+    auto_modder = true,
 }
 
 local legit = {
 	autobuy = true,
 	max_hunger = true,
 }
+
 
 local ammo_type = {
 	heavy = "Heavy Ammo",
@@ -200,9 +203,9 @@ for gun_name, data in pairs(modded_gun) do
 end
 
 function modify_gun(old_gun, new_gun_name, ammo_type, max_ammo, damage, gun_sound)
-	if rage.auto_modder ~= true then
-		note:Fire("mod " .. old_gun, "Make sure to have your " .. old_gun .. " unequipped", 5)
-	end
+    if rage.auto_modder ~= true then
+	note:Fire("mod " .. old_gun, "Make sure to have your " .. old_gun .. " unequipped", 5)
+    end
 	local gun = svc.players.LocalPlayer.Backpack:WaitForChild(old_gun)
 	gun.LocalScript:Destroy()
 	require(svc.rs.Modules.TS[(false and "ANS") or "GNS"]).Initiate(
@@ -221,9 +224,9 @@ function modify_gun(old_gun, new_gun_name, ammo_type, max_ammo, damage, gun_soun
 		2
 	)
 	gun.Name = new_gun_name
-	if rage.auto_modder ~= true then -- whatever
-		note:Fire("Done!", "Modding is done. Equip your " .. new_gun_name .. " now", 5)
-	end
+    if rage.auto_modder ~= true then -- whatever
+	note:Fire("Done!", "Modding is done. Equip your " .. new_gun_name .. " now", 5)
+    end
 end
 
 local killaura_settings = {
@@ -278,6 +281,7 @@ local killaura_func = {
 		return targets
 	end,
 }
+
 
 function shoot_gun(x, y, z, humanoid)
 	local tool = svc.players.LocalPlayer.Character:FindFirstChildOfClass("Tool")
@@ -371,7 +375,7 @@ svc.run.RenderStepped:Connect(function(dt)
 	end
 
 	if rage.aimbot == true then
-		print("are you stupid")
+        print("are you stupid")
 	end
 
 	if rage.auto_reload == true then
@@ -383,7 +387,8 @@ svc.run.RenderStepped:Connect(function(dt)
 	end
 end)
 
-for _, ammo_name in next, ammo_type do -- i know this doesnt work
+
+for _, ammo_name in next,ammo_type do -- i know this doesnt work
 	local ammo_stat = player_data:WaitForChild(ammo_name)
 	print(ammo_stat, ammo_name)
 	ammo_stat:GetPropertyChangedSignal("Value"):Connect(function()
