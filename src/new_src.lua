@@ -132,7 +132,7 @@ function tween(i, t, p)
 	return svc.tween:Create(i, t, p):Play()
 end
 
-function draw_ray_line(origin, final, color)
+function draw_ray_line(origin, final, color, transparency)
 	coroutine.wrap(function()
 		local ray_part = Instance.new("Part")
 		ray_part.Anchored = true
@@ -141,7 +141,7 @@ function draw_ray_line(origin, final, color)
 		ray_part.CanTouch = false
 		ray_part.Material = Enum.Material.Neon
 		ray_part.Color = color
-		ray_part.Transparency = 0
+		ray_part.Transparency = transparency or 0
 
 		local direction = final - origin
 		local distance = direction.Magnitude
@@ -150,7 +150,7 @@ function draw_ray_line(origin, final, color)
 		ray_part.Size = Vector3.new(0.1, 0.1, distance)
 		ray_part.CFrame = CFrame.new(mid_point, final)
 		ray_part.Parent = workspace
-		tween(ray_part, tsi.sine_inout(0.5), { Transparency = 1 })
+		tween(ray_part, tsi.sine_inout(0.5), { Transparency = 1, Size = Vector3.new(0, 0, distance)})
 		svc.debris:AddItem(ray_part, 0.5)
 	end)()
 end
@@ -158,7 +158,7 @@ end
 function cast_ray(origin, final)
 	local ray_params = RaycastParams.new()
 	ray_params.FilterType = Enum.RaycastFilterType.Exclude
-	ray_params.FilterDescendantsInstances = { svc.players.LocalPlayer.Character }
+	ray_params.FilterDescendantsInstances = { svc.players.LocalPlayer.Character, workspace.Vehicles }
 	ray_params.IgnoreWater = true
 
 	local direction = (final - origin)
@@ -169,10 +169,10 @@ function cast_ray(origin, final)
 
 		local distance_to_target = (hit_pos - final).Magnitude
 		if distance_to_target < 2 then
-			draw_ray_line(origin, hit_pos, Color3.fromRGB(0, 255, 0))
+			draw_ray_line(origin, hit_pos, Color3.fromRGB(50, 255, 50))
 			return true
 		else
-			draw_ray_line(origin, hit_pos, Color3.fromRGB(255, 0, 0))
+			draw_ray_line(origin, hit_pos, Color3.fromRGB(255, 50, 50), 0.6)
 			return false
 		end
 	else
@@ -272,7 +272,7 @@ local killaura_settings = {
 	},
 	radius = 300,
 	last_kill_time = 0,
-	shoot_delay = 0.0000001,
+	shoot_delay = 0.05,
 	last_target_index = 1,
 }
 
