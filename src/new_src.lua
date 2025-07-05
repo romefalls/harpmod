@@ -253,6 +253,29 @@ function buy_item_from_store(what)
 	game_event.menu:FireServer(unpack(args))
 end
 
+local name_color = {
+	white = Color3.fromRGB(255, 255, 255),
+	yellow = Color3.fromRGB(255, 187, 69),
+	red = Color3.fromRGB(255, 33, 33),
+}
+
+function get_player_name_color(player)
+	local label = player.Character
+		and player.Character:FindFirstChild("NameTag")
+		and player.Character.NameTag:FindFirstChild("TextLabel")
+	return (label and label.TextColor3) or name_color.white
+end
+
+function get_player_name_key(player)
+	local col = get_player_name_color(player)
+	for key, color_val in pairs(name_color) do
+		if color_val == col then
+			return key
+		end
+	end
+	return "white"
+end
+
 for gun_name, data in pairs(modded_gun) do
 	data.ammo_type = get_ammo_type(gun_name)
 end
@@ -290,6 +313,11 @@ local killaura_settings = {
 		last_cell = nil,
 		pending_update = true,
 	},
+	target = {
+		white_names = false,
+		yellow_names = false,
+		red_names = true,
+	},
 	radius = 200,
 	last_kill_time = 0,
 	shoot_delay = 0.05,
@@ -313,28 +341,32 @@ local killaura_func = {
 		if not my_char then
 			return {}
 		end
-
 		local my_hrp = my_char:FindFirstChild("HumanoidRootPart")
 		if not my_hrp then
 			return {}
 		end
-
 		local targets = {}
-
 		for _, player in pairs(svc.players:GetPlayers()) do
 			if player ~= local_player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-				if not killaura_whitelist[player.Name] then
-					if #killaura_blacklist == 0 or table.find(killaura_blacklist, player.Name) then
-						local enemy_hrp = player.Character.HumanoidRootPart
-						local distance = (enemy_hrp.Position - my_hrp.Position).Magnitude
-						if distance < killaura_settings.radius then
-							table.insert(targets, { player = player, part = enemy_hrp })
-						end
-					end
+				if killaura_whitelist[player.Name] then
+					continue
+				end
+				local name_key = get_player_name_key(player)
+				local is_allowed_color = killaura_settings.target[name_key .. "_names"]
+				if not is_allowed_color then
+					continue
+				end
+				if #killaura_blacklist > 0 and not table.find(killaura_blacklist, player.Name) then
+					continue
+				end
+				local enemy_hrp = player.Character.HumanoidRootPart
+				local distance = (enemy_hrp.Position - my_hrp.Position).Magnitude
+
+				if distance < killaura_settings.radius then
+					table.insert(targets, { player = player, part = enemy_hrp })
 				end
 			end
 		end
-
 		return targets
 	end,
 }
@@ -345,13 +377,13 @@ function shoot_gun(x, y, z, humanoid)
 		return
 	end
 	local args = {
-		[1] = 33, 
-		[2] = CFrame.new(x, y, z), 
+		[1] = 33,
+		[2] = CFrame.new(x, y, z),
 		[3] = 2,
-		[4] = humanoid, 
+		[4] = humanoid,
 		[5] = 100,
 		[6] = tool,
-		[7] = nil, 
+		[7] = nil,
 		[8] = 1,
 	}
 	game_event.menu_action:FireServer(unpack(args))
@@ -376,15 +408,13 @@ function reload_gun(amount)
 	reload_settings.last_reload_time = now
 end
 
-function drink_cola()
-
-end
+function drink_cola() end
 
 function make_node_on_spawn() -- one day
 	local args = {
 		1,
 		"Node",
-		CFrame.new(1,2,3),
+		CFrame.new(1, 2, 3),
 	}
 	game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("BuildingEvent"):FireServer(unpack(args))
 end
