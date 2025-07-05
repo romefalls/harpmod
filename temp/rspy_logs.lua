@@ -98,3 +98,10 @@ local args = {
 	CFrame.new(-683.96337890625, 153.0625, -186.96942138671875, -0.7071068286895752, -4.36954721294569e-08, 0.7071067690849304, -3.0921320615107106e-08, 1, 3.091842870617256e-08, -0.7071067690849304, 2.0474290665650763e-12, -0.7071068286895752)
 }
 game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("BuildingEvent"):FireServer(unpack(args))
+
+-- crate pickup
+
+local args = {
+	Instance.new("Model", nil)
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("CratePickUpEvent"):FireServer(unpack(args))
