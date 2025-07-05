@@ -110,6 +110,10 @@ local gun = {
 	},
 }
 
+local melee = {
+	"Toilet Plunger",
+}
+
 local default_modded_gun_properties = {
 	new_gun_name = "hi bro",
 	sound = 4,
@@ -391,6 +395,15 @@ function shoot_gun(x, y, z, humanoid)
 	game_event.menu_action:FireServer(unpack(args))
 end
 
+function swing_melee(target_player)
+	local args = {
+		34,
+		workspace:FindFirstChild(target_player):WaitForChild("Humanoid"),
+		workspace:FindFirstChild(target_player):WaitForChild("HumanoidRootPart").CFrame,
+	}
+	game_event.menu_action:FireServer(unpack(args))
+end
+
 local reload_settings = {
 	last_reload_time = 0,
 	reload_delay = 0.1, -- s
@@ -438,15 +451,19 @@ local on_render_stepped = {
 				task.spawn(function()
 					local targets = killaura_func.get_nearby_cell_targets()
 					if #targets > 0 then
-						killaura_settings.last_target_index = killaura_settings.last_target_index + 1
-						if killaura_settings.last_target_index > #targets then
-							killaura_settings.last_target_index = 1
-						end
-						local target = targets[killaura_settings.last_target_index]
-						local pos = target.part.Position
-						local hum = target.part.Parent:WaitForChild("Humanoid")
-						if cast_ray(get_pos, pos) then
-							shoot_gun(pos.X, pos.Y, pos.Z, hum)
+						local total_targets = #targets
+						for _ = 1, total_targets do
+							killaura_settings.last_target_index = killaura_settings.last_target_index + 1
+							if killaura_settings.last_target_index > total_targets then
+								killaura_settings.last_target_index = 1
+							end
+							local target = targets[killaura_settings.last_target_index]
+							local pos = target.part.Position
+							local hum = target.part.Parent:WaitForChild("Humanoid")
+							if cast_ray(get_pos, pos) then
+								shoot_gun(pos.X, pos.Y, pos.Z, hum)
+								break
+							end
 						end
 					end
 				end)
