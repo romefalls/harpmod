@@ -105,3 +105,22 @@ local args = {
 	Instance.new("Model", nil)
 }
 game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("CratePickUpEvent"):FireServer(unpack(args))
+
+
+-- heal
+
+local args = {
+    5,
+    game:GetService("Players"):WaitForChild("player").Character:WaitForChild("Humanoid")
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("ToolsEvent"):FireServer(unpack(args))
+
+
+--scythe
+
+-- ghost in
+local args = {
+	game:GetService("Players").LocalPlayer.Character:WaitForChild("Mythic Ghost Scythe"),
+	2
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("GhostEvent"):FireServer(unpack(args))

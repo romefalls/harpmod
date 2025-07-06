@@ -42,6 +42,7 @@ local rage = {
 	auto_modder = true,
 	auto_cola = true, -- for normal ones
 	cola_god = true, -- for mythic one
+	
 }
 
 local legit = {
