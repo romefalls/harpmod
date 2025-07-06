@@ -580,4 +580,4 @@ svc.run.RenderStepped:Connect(function(dt)
 	end
 end)
 
-print("hello world")
+note:Fire("success","ran successfully",5)
