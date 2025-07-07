@@ -1,67 +1,107 @@
+--[[
+
+note:
+you arent supposed to autorun this script
+i removed a LOT of waitforchilds
+
+]]
 
 
-local tspawn=task.spawn
-local twait=task.wait
-local tinsert=table.insert
-local tclear=table.clear
-local tclone=table.clone
-local tfind=table.find
 
-local next=next
-local pcall=pcall
-local xpcall=xpcall
-local type=type
-local typeof=typeof
-local game=game
-local replicatesignal=replicatesignal
+local task_spawn = task.spawn
+local _task_wait = task.wait -- selene can you shut up already thank you
+local table_insert = table.insert
+local table_find = table.find
 
-local i=Instance.new 
-local v2=Vector2.new 
-local v3=Vector3.new
-local c3=Color3.new 
-local cf=CFrame.new
-local cfl=CFrame.lookAt
-local angles=CFrame.fromEulerAngles
-local u2=UDim2.new 
-local e=Enum 
-local rp=RaycastParams.new 
-local cs=ColorSequence.new 
-local csk=ColorSequenceKeypoint.new 
+local next = next
+local pcall = pcall
+local xpcall = xpcall
+local type = type
+local typeof = typeof
+local game = game
 
-local getMetamethodFromErrorStack=function(userdata,f,test)
-	local ret=nil
-	xpcall(f,function()
-		ret=debug.info(2,"f")
-	end,userdata,nil,0)
-	if (type(ret)~="function") or not test(ret) then
+
+local instance = Instance.new
+local vector3 = Vector3.new
+local color3 = Color3.fromRGB
+local cframe = cframe
+local enum = Enum
+
+local get_metamethod_from_error_stack = function(userdata, f, test) --[[
+		full disclosure:
+		i dont know what the fuck this does
+		this is probably elite roblox knowledge,
+		for those uninitiated, this is like reading c after thousands of years of using lua
+	]]
+	local ret = nil
+	xpcall(f, function()
+		ret = debug.info(2, "f")
+	end, userdata, nil, 0)
+	if (type(ret) ~= "function") or not test(ret) then
 		return f
 	end
 	return ret
 end
-local insSet=getMetamethodFromErrorStack(game,function(a,b,c) a[b]=c end,function(f) local a=i("Folder") local b=rs() f(a,"Name",b) return a.Name==b end)
-local insGet=getMetamethodFromErrorStack(game,function(a,b) return a[b] end,function(f) local a=i("Folder") local b=rs() a.Name=b return f(a,"Name")==b end)
+
+local ins_set = get_metamethod_from_error_stack(game, function(a, b, c)
+	a[b] = c
+end, function(f)
+	local a = i("Folder")
+	local b = rs()
+	f(a, "Name", b)
+	return a.Name == b
+end)
+
+local ins_get = get_metamethod_from_error_stack(game, function(a, b)
+	return a[b]
+end, function(f)
+	local a = i("Folder")
+	local b = rs()
+	a.Name = b
+	return f(a, "Name") == b
+end)
 
 
-local svc = {
-	players = game:GetService("Players"),
-	rs = game:GetService("ReplicatedStorage"),
-	debris = game:GetService("Debris"),
-	run = game:GetService("RunService"),
-	tween = game:GetService("TweenService"),
+local find_first_child_of_class=insGet(game,"FindFirstChildOfClass")
+
+
+local svc = { -- apparently findfirstchildofclass is faster than getservice?
+	players = find_first_child_of_class(game,"Players"),
+	rs = find_first_child_of_class(game,"ReplicatedStorage"),
+	debris = find_first_child_of_class(game,"Debris"),
+	run = find_first_child_of_class(game,"RunService"),
+	tween = find_first_child_of_class(game,"TweenService"),
 }
 
+local renderstepped=insGet(svc.run,"RenderStepped")
+local heartbeat=insGet(svc.run,"Heartbeat")
+local connect=heartbeat.Connect
+local get_property_changed_signal=insGet(game,"GetPropertyChangedSignal")
+local get_children=insGet(game,"GetChildren")
+
+local find_first_child=function(p,n,cl)
+	for i,v in next,get_children(p) do
+		if IsA(v,cl) and (insGet(v,"Name")==n) then
+			return v
+		end
+	end
+	return nil
+end
+
 local game_instance = {
-	events = svc.rs:WaitForChild("Events"),
+	events = svc.rs.Events,
 }
 
 local game_event = {
-	menu_action = game_instance.events:WaitForChild("MenuActionEvent"),
-	reload_action = game_instance.events:WaitForChild("WeaponReloadEvent"),
-	menu = game_instance.events:WaitForChild("MenuEvent"),
-	tool = game_instance.events:WaitForChild("ToolsEvent"),
+	menu_action = game_instance.events.MenuActionEvent,
+	reload_action = game_instance.events.WeaponReloadEvent,
+	menu = game_instance.events.MenuEvent,
+	tool = game_instance.events.ToolsEvent,
 }
 
-local player_data = svc.players.LocalPlayer:WaitForChild("PlayerData")
+local local_player = ins_get(svc.players,"LocalPlayer")
+
+local player_data = local_player.PlayerData
 local note = game.ReplicatedStorage.Events.Note
 
 local rage = {
@@ -71,7 +111,6 @@ local rage = {
 	auto_modder = true,
 	auto_cola = true, -- for normal ones
 	cola_god = true, -- for mythic one
-	
 }
 
 local legit = {
@@ -81,10 +120,10 @@ local legit = {
 
 local tsi = {
 	exponentiate_out = function(t)
-		return TweenInfo.new(t, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
+		return TweenInfo.new(t, enum.EasingStyle.Exponential, enum.EasingDirection.Out)
 	end,
 	sine_inout = function(t)
-		return TweenInfo.new(t, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+		return TweenInfo.new(t, enum.EasingStyle.Sine, enum.EasingDirection.InOut)
 	end,
 }
 
@@ -112,7 +151,7 @@ local ammo_type_in_shop = {
 local gun = {
 	heavy = {
 		"Laser Musket",
-		-- .. i think thats it
+		"Remington",
 	},
 	pistol = {
 		"Deagle",
@@ -182,7 +221,7 @@ for _, gun in pairs(modded_gun_data) do
 	})
 end
 
-function create_default_gun()
+local create_default_gun = function()
 	return setmetatable({}, { __index = default_modded_gun_properties })
 end
 
@@ -199,14 +238,14 @@ local debug = {
 	enabled = false,
 	killaura = {
 		draw_cells = function(cell_vec3, color)
-			local size = Vector3.new(4, 4, 4)
-			local part = Instance.new("Part")
+			local size = vector3(4, 4, 4)
+			local part = instance("Part")
 			part.Size = size
 			part.Anchored = true
 			part.CanCollide = false
 			part.CanQuery = false
 			part.Transparency = 0.93
-			part.Color = color or Color3.fromRGB(0, 255, 0)
+			part.Color = color or color3(0, 255, 0)
 			part.Position = (cell_vec3 * 4) + size / 2
 			part.Parent = workspace
 
@@ -215,18 +254,18 @@ local debug = {
 	},
 }
 
-function tween(i, t, p)
+local tween = function(i, t, p)
 	return svc.tween:Create(i, t, p):Play()
 end
 
-function draw_ray_line(origin, final, color, transparency)
+local draw_ray_line = function(origin, final, color, transparency)
 	coroutine.wrap(function()
-		local ray_part = Instance.new("Part")
+		local ray_part = instance("Part")
 		ray_part.Anchored = true
 		ray_part.CanCollide = false
 		ray_part.CanQuery = false
 		ray_part.CanTouch = false
-		ray_part.Material = Enum.Material.Neon
+		ray_part.Material = enum.Material.Neon
 		ray_part.Color = color
 		ray_part.Transparency = transparency or 0
 
@@ -234,18 +273,18 @@ function draw_ray_line(origin, final, color, transparency)
 		local distance = direction.Magnitude
 		local mid_point = origin + (direction / 2)
 
-		ray_part.Size = Vector3.new(0.1, 0.1, distance)
-		ray_part.CFrame = CFrame.new(mid_point, final)
+		ray_part.Size = vector3(0.1, 0.1, distance)
+		ray_part.CFrame = cframe(mid_point, final)
 		ray_part.Parent = workspace
-		tween(ray_part, tsi.sine_inout(0.5), { Transparency = 1, Size = Vector3.new(0, 0, distance) })
+		tween(ray_part, tsi.sine_inout(0.5), { Transparency = 1, Size = vector3(0, 0, distance) })
 		svc.debris:AddItem(ray_part, 0.5)
 	end)()
 end
 
-function cast_ray(origin, final)
+local cast_ray = function(origin, final)
 	local ray_params = RaycastParams.new()
-	ray_params.FilterType = Enum.RaycastFilterType.Exclude
-	ray_params.FilterDescendantsInstances = { svc.players.LocalPlayer.Character, workspace.Vehicles }
+	ray_params.FilterType = enum.RaycastFilterType.Exclude
+	ray_params.FilterDescendantsInstances = { local_player.Character, workspace.Vehicles }
 	ray_params.IgnoreWater = true
 
 	local direction = (final - origin)
@@ -256,19 +295,19 @@ function cast_ray(origin, final)
 
 		local distance_to_target = (hit_pos - final).Magnitude
 		if distance_to_target < 2 then
-			draw_ray_line(origin, hit_pos, Color3.fromRGB(50, 255, 50))
+			draw_ray_line(origin, hit_pos, color3(50, 255, 50))
 			return true
 		else
-			draw_ray_line(origin, hit_pos, Color3.fromRGB(255, 50, 50), 0.6)
+			draw_ray_line(origin, hit_pos, color3(255, 50, 50), 0.6)
 			return false
 		end
 	else
-		draw_ray_line(origin, origin + direction, Color3.fromRGB(100, 100, 100))
+		draw_ray_line(origin, origin + direction, color3(100, 100, 100))
 		return false
 	end
 end
 
-function get_ammo_type(gun_name)
+local get_ammo_type = function(gun_name)
 	for ammo_category, gun_list in pairs(gun) do
 		for _, name in ipairs(gun_list) do
 			if name == gun_name then
@@ -279,7 +318,7 @@ function get_ammo_type(gun_name)
 	return ammo_type.pistol
 end
 
-function buy_item_from_store(what)
+local buy_item_from_store = function(what)
 	local args = {
 		[1] = 2,
 		[2] = what,
@@ -290,19 +329,19 @@ function buy_item_from_store(what)
 end
 
 local name_color = {
-	white = Color3.fromRGB(255, 255, 255),
-	yellow = Color3.fromRGB(255, 187, 69),
-	red = Color3.fromRGB(255, 33, 33),
+	white = color3(255, 255, 255),
+	yellow = color3(255, 187, 69),
+	red = color3(255, 33, 33),
 }
 
-function get_player_name_color(player)
+local get_player_name_color = function(player)
 	local label = player.Character
 		and player.Character:FindFirstChild("NameTag")
 		and player.Character.NameTag:FindFirstChild("TextLabel")
 	return (label and label.TextColor3) or name_color.white
 end
 
-function get_player_name_key(player)
+local get_player_name_key = function(player)
 	local col = get_player_name_color(player)
 	for key, color_val in pairs(name_color) do
 		if color_val == col then
@@ -316,11 +355,11 @@ for gun_name, data in pairs(modded_gun) do
 	data.ammo_type = get_ammo_type(gun_name)
 end
 
-function modify_gun(old_gun, new_gun_name, ammo_type, gun_sound)
+local modify_gun = function(old_gun, new_gun_name, ammo_type, gun_sound)
 	if rage.auto_modder ~= true then
 		note:Fire("mod " .. old_gun, "Make sure to have your " .. old_gun .. " unequipped", 5)
 	end
-	local gun = svc.players.LocalPlayer.Backpack:WaitForChild(old_gun)
+	local gun = local_player.Backpack:WaitForChild(old_gun)
 	gun.LocalScript:Destroy()
 	require(svc.rs.Modules.TS[(false and "ANS") or "GNS"]).Initiate(
 		gun,
@@ -372,7 +411,6 @@ local killaura_func = {
 		return workspace.CurrentCamera.CFrame.Position // killaura_settings.cell.size
 	end,
 	get_nearby_cell_targets = function()
-		local local_player = svc.players.LocalPlayer
 		local my_char = local_player.Character
 		if not my_char then
 			return {}
@@ -392,14 +430,14 @@ local killaura_func = {
 				if not is_allowed_color then
 					continue
 				end
-				if #killaura_blacklist > 0 and not table.find(killaura_blacklist, player.Name) then
+				if #killaura_blacklist > 0 and not table_find(killaura_blacklist, player.Name) then
 					continue
 				end
 				local enemy_hrp = player.Character.HumanoidRootPart
 				local distance = (enemy_hrp.Position - my_hrp.Position).Magnitude
 
 				if distance < killaura_settings.radius then
-					table.insert(targets, { player = player, part = enemy_hrp })
+					table_insert(targets, { player = player, part = enemy_hrp })
 				end
 			end
 		end
@@ -407,14 +445,14 @@ local killaura_func = {
 	end,
 }
 
-function shoot_gun(x, y, z, humanoid)
-	local tool = svc.players.LocalPlayer.Character:FindFirstChildOfClass("Tool")
+local shoot_gun = function(x, y, z, humanoid)
+	local tool = local_player.Character:FindFirstChildOfClass("Tool")
 	if not tool then
 		return
 	end
 	local args = {
 		[1] = 33,
-		[2] = CFrame.new(x, y, z),
+		[2] = cframe(x, y, z),
 		[3] = 2,
 		[4] = humanoid,
 		[5] = 100,
@@ -425,7 +463,7 @@ function shoot_gun(x, y, z, humanoid)
 	game_event.menu_action:FireServer(unpack(args))
 end
 
-function swing_melee(target_player)
+local swing_melee = function(target_player)
 	local args = {
 		34,
 		workspace:FindFirstChild(target_player):WaitForChild("Humanoid"),
@@ -439,12 +477,12 @@ local reload_settings = {
 	reload_delay = 0.1, -- s
 }
 
-function reload_gun(amount)
+local reload_gun = function(amount)
 	local now = tick()
 	if now - reload_settings.last_reload_time < reload_settings.reload_delay then
 		return
 	end
-	local tool = svc.players.LocalPlayer.Character:FindFirstChildOfClass("Tool")
+	local tool = local_player.Character:FindFirstChildOfClass("Tool")
 	if not tool then
 		return
 	end
@@ -457,7 +495,7 @@ function make_node_on_spawn() -- one day
 	local args = {
 		1,
 		"Node",
-		CFrame.new(1, 2, 3),
+		cframe(1, 2, 3),
 	}
 	game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("BuildingEvent"):FireServer(unpack(args))
 end
@@ -465,7 +503,7 @@ end
 local on_render_stepped = {
 	killaura = function()
 		if rage.killaura == true then
-			local get_pos = svc.players.LocalPlayer.Character:WaitForChild("HumanoidRootPart").CFrame.Position
+			local get_pos = local_player.Character:WaitForChild("HumanoidRootPart").CFrame.Position
 
 			local current_cell = killaura_func.get_current_cell()
 			if current_cell ~= killaura_settings.cell.last_cell then
@@ -478,7 +516,7 @@ local on_render_stepped = {
 			then
 				killaura_settings.cell.pending_update = false
 				killaura_settings.last_kill_time = tick()
-				task.spawn(function()
+				task_spawn(function()
 					local targets = killaura_func.get_nearby_cell_targets()
 					if #targets > 0 then
 						local total_targets = #targets
@@ -504,17 +542,17 @@ local on_render_stepped = {
 				for x = -range, range do
 					for y = -range, range do
 						for z = -range, range do
-							local offset = Vector3.new(x, y, z)
+							local offset = vector3(x, y, z)
 							local cell = current_cell + offset
 							local center_pos = (cell * killaura_settings.cell.size)
-								+ Vector3.new(
+								+ vector3(
 									killaura_settings.cell.size / 2,
 									killaura_settings.cell.size / 2,
 									killaura_settings.cell.size / 2
 								)
 
 							if (center_pos - get_pos).Magnitude <= killaura_settings.radius then
-								debug.killaura.draw_cells(cell, Color3.fromRGB(0, 255, 0))
+								debug.killaura.draw_cells(cell, color3(0, 255, 0))
 							end
 						end
 					end
@@ -534,11 +572,11 @@ local on_render_stepped = {
 	end,
 	max_hunger = function()
 		if legit.max_hunger == true then
-			svc.players.LocalPlayer.PlayerData.Hunger.Value = 100
+			local_player.PlayerData.Hunger.Value = 100
 		end
 	end,
 	auto_cola = function()
-		local character = svc.players.LocalPlayer.Character
+		local character = local_player.Character
 		if not character then
 			return
 		end
@@ -550,18 +588,20 @@ local on_render_stepped = {
 			drink_cola()
 		end
 	end,
+	--[[
 	cola_god = function()
-		local cola = svc.players.LocalPlayer.Backpack:FindFirstChild("Mythic Bloxy Cola")
+		local cola = local_player.Backpack:FindFirstChild("Mythic Bloxy Cola")
 		if not cola then
 			return
 		end
 		game_event.tool:FireServer({ 4, cola })
 	end,
+	]]
 }
 
 for _, ammo_name in next, ammo_type do
 	local ammo_stat = player_data:WaitForChild(ammo_name)
-	ammo_stat:GetPropertyChangedSignal("Value"):Connect(function()
+	ammo_stat:get_property_changed_signal("Value"):Connect(function()
 		if legit.autobuy == true then
 			if ammo_stat.Value < 20 then
 				local key = ammo_type_to_key[ammo_name]
@@ -576,7 +616,7 @@ for _, ammo_name in next, ammo_type do
 	end)
 end
 
-svc.players.LocalPlayer.Backpack.ChildAdded:Connect(function(child)
+local_player.Backpack.ChildAdded:Connect(function(child)
 	if rage.auto_modder == true then
 		local handle = child:FindFirstChild("Handle")
 		if not handle then
@@ -599,14 +639,14 @@ svc.players.LocalPlayer.Backpack.ChildAdded:Connect(function(child)
 	end
 end)
 
-svc.run.RenderStepped:Connect(function(dt)
+renderstepped:Connect(function()
 	for _, v in next, on_render_stepped do
 		xpcall(function()
-			task.spawn(v)
+			task_spawn(v)
 		end, function(err)
 			warn("are you stupid: ", err)
 		end)
 	end
 end)
 
-note:Fire("success","ran successfully",5)
+note:Fire("success", "ran successfully", 5)
