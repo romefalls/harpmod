@@ -292,9 +292,16 @@ end
 local cast_ray = function(origin, final)
 	local ray_params = raycast_params()
 	ray_params.FilterType = enum.RaycastFilterType.Exclude
-	ray_params.FilterDescendantsInstances = { local_player.Character, workspace.Vehicles }
 	ray_params.IgnoreWater = true
+	local exclude = { local_player.Character, workspace.Vehicles }
 
+	for _,v in next,get_players() do
+		if not v.Character then return end
+		local tool = v.Character:FindFirstChildOfClass("Tool") 
+		if not tool then return end
+		table_insert(exclude,tool)
+	end
+	ray_params.FilterDescendantsInstances = exclude
 	local direction = (final - origin)
 	local result = raycast(svc.ws, origin, direction, ray_params)
 
