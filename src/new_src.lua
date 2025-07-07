@@ -26,6 +26,19 @@ local vector3 = Vector3.new
 local color3 = Color3.fromRGB
 local cframe = CFrame.new
 local enum = Enum
+local raycast_params = RaycastParams.new
+
+local random_string = function()
+	local s = ""
+	for _ = 1, math_random(8, 15) do
+		if math_random(2) == 2 then
+			s = s .. string_char(math_random(65, 90))
+		else
+			s = s .. string_char(math_random(97, 122))
+		end
+	end
+	return s
+end
 
 local get_metamethod_from_error_stack = function(userdata, f, test) --[[
 		full disclosure:
@@ -47,8 +60,8 @@ local ins_get = get_metamethod_from_error_stack(game, function(a, b) -- problem 
 	return a[b]
 end, function(f)
 	local a = Instance.new("Folder")
-	local b = "hello world"
-	a.Name = b
+	local b = random_string()
+	a.Name = random_string()
 	return f(a, "Name") == b
 end)
 
@@ -64,7 +77,7 @@ local svc = { -- apparently findfirstchildofclass is faster than getservice?
 
 local get_players = ins_get(svc.players, "GetPlayers")
 local is_a = ins_get(game, "IsA")
-
+local raycast = ins_get(ws, "Raycast")
 local renderstepped = ins_get(svc.run, "RenderStepped")
 local heartbeat = ins_get(svc.run, "Heartbeat")
 local connect = heartbeat.Connect
@@ -275,13 +288,13 @@ local draw_ray_line = function(origin, final, color, transparency)
 end
 
 local cast_ray = function(origin, final)
-	local ray_params = RaycastParams.new()
+	local ray_params = raycast_params()
 	ray_params.FilterType = enum.RaycastFilterType.Exclude
 	ray_params.FilterDescendantsInstances = { local_player.Character, workspace.Vehicles }
 	ray_params.IgnoreWater = true
 
 	local direction = (final - origin)
-	local result = workspace:Raycast(origin, direction, ray_params)
+	local result = raycast(origin, direction, ray_params)
 
 	if result then
 		local hit_pos = result.Position
@@ -408,13 +421,13 @@ local killaura_func = {
 		if not my_char then
 			return {}
 		end
-		local my_hrp = my_char:FindFirstChild("HumanoidRootPart")
+		local my_hrp = find_first_child_and_class_check(my_char,"HumanoidRootPart","BasePart")
 		if not my_hrp then
 			return {}
 		end
 		local targets = {}
 		for _, player in next, get_players(svc.players) do
-			if player ~= local_player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+			if player ~= local_player and player.Character and find_first_child_and_class_check(player.Character,"HumanoidRootPart","BasePart") then
 				if killaura_whitelist[player.Name] then
 					continue
 				end
@@ -538,10 +551,10 @@ local on_render_stepped = {
 							local offset = vector3(x, y, z)
 							local cell = current_cell + offset
 							local center_pos = (cell * killaura_settings.cell.size)
-								+ vector3(
-									killaura_settings.cell.size / 2,
-									killaura_settings.cell.size / 2,
-									killaura_settings.cell.size / 2
+								+ vector3( -- apparently using * and + operators on vector3s are faster than /?
+									killaura_settings.cell.size * 0.5,
+									killaura_settings.cell.size * 0.5,
+									killaura_settings.cell.size * 0.5
 								)
 
 							if (center_pos - get_pos).Magnitude <= killaura_settings.radius then
@@ -611,12 +624,12 @@ end
 
 connect(local_player.Backpack.ChildAdded, function(child)
 	if rage.auto_modder == true then
-		local handle = child:FindFirstChild("Handle")
+		local handle = find_first_child_and_class_check(child,"Handle","BasePart") 
 		if not handle then
 			return
 		end
-		local has_fire = handle:FindFirstChild("Fire") -- i am way too lazy to find another way to check if this is a gun
-		local has_reload = handle:FindFirstChild("Reload")
+		local has_fire = find_first_child_and_class_check(handle,"Fire","Sound") -- i am way too lazy to find another way to check if this is a gun
+		local has_reload = find_first_child_and_class_check(handle,"Rekoad","Sound")
 		if not has_fire and not has_reload then
 			return
 		end
