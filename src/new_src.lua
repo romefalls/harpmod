@@ -18,8 +18,8 @@ local type = type
 local typeof = typeof
 local game = game
 
-local math_random=math.random
-local string_char=string.char
+local math_random = math.random
+local string_char = string.char
 
 local instance = Instance.new
 local vector3 = Vector3.new
@@ -73,7 +73,7 @@ local svc = { -- apparently findfirstchildofclass is faster than getservice?
 	debris = find_first_child_of_class(game, "Debris"),
 	run = find_first_child_of_class(game, "RunService"),
 	tween = find_first_child_of_class(game, "TweenService"),
-	ws = find_first_child_of_class(game, "Workspace")
+	ws = find_first_child_of_class(game, "Workspace"),
 }
 
 local get_players = ins_get(svc.players, "GetPlayers")
@@ -84,7 +84,6 @@ local heartbeat = ins_get(svc.run, "Heartbeat")
 local connect = heartbeat.Connect
 local get_property_changed_signal = ins_get(game, "GetPropertyChangedSignal")
 local get_children = ins_get(game, "GetChildren")
-
 
 local find_first_child_and_class_check = function(parent, instance, class) -- isnt this just findfirstchildofclass?
 	for _, v in next, get_children(parent) do
@@ -294,12 +293,13 @@ local cast_ray = function(origin, final)
 	ray_params.FilterType = enum.RaycastFilterType.Exclude
 	ray_params.IgnoreWater = true
 	local exclude = { local_player.Character, workspace.Vehicles }
-
-	for _,v in next,get_players() do
-		if not v.Character then return end
-		local tool = v.Character:FindFirstChildOfClass("Tool") 
-		if not tool then return end
-		table_insert(exclude,tool)
+	for _, v in next, get_players(svc.players) do
+		if v.Character then
+			local tool = v.Character:FindFirstChildOfClass("Tool")
+			if tool then
+				table_insert(exclude, tool)
+			end
+		end
 	end
 	ray_params.FilterDescendantsInstances = exclude
 	local direction = (final - origin)
@@ -430,13 +430,17 @@ local killaura_func = {
 		if not my_char then
 			return {}
 		end
-		local my_hrp = find_first_child_and_class_check(my_char,"HumanoidRootPart","BasePart")
+		local my_hrp = find_first_child_and_class_check(my_char, "HumanoidRootPart", "BasePart")
 		if not my_hrp then
 			return {}
 		end
 		local targets = {}
 		for _, player in next, get_players(svc.players) do
-			if player ~= local_player and player.Character and find_first_child_and_class_check(player.Character,"HumanoidRootPart","BasePart") then
+			if
+				player ~= local_player
+				and player.Character
+				and find_first_child_and_class_check(player.Character, "HumanoidRootPart", "BasePart")
+			then
 				if killaura_whitelist[player.Name] then
 					continue
 				end
@@ -633,12 +637,12 @@ end
 
 connect(local_player.Backpack.ChildAdded, function(child)
 	if rage.auto_modder == true then
-		local handle = find_first_child_and_class_check(child,"Handle","BasePart") 
+		local handle = find_first_child_and_class_check(child, "Handle", "BasePart")
 		if not handle then
 			return
 		end
-		local has_fire = find_first_child_and_class_check(handle,"Fire","Sound") -- i am way too lazy to find another way to check if this is a gun
-		local has_reload = find_first_child_and_class_check(handle,"Rekoad","Sound")
+		local has_fire = find_first_child_and_class_check(handle, "Fire", "Sound") -- i am way too lazy to find another way to check if this is a gun
+		local has_reload = find_first_child_and_class_check(handle, "Rekoad", "Sound")
 		if not has_fire and not has_reload then
 			return
 		end
