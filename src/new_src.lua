@@ -6,8 +6,6 @@ i removed a LOT of waitforchilds
 
 ]]
 
-
-
 local task_spawn = task.spawn
 local _task_wait = task.wait -- selene can you shut up already thank you
 local table_insert = table.insert
@@ -19,7 +17,6 @@ local xpcall = xpcall
 local type = type
 local typeof = typeof
 local game = game
-
 
 local instance = Instance.new
 local vector3 = Vector3.new
@@ -61,27 +58,27 @@ end, function(f)
 	return f(a, "Name") == b
 end)
 
-
-local find_first_child_of_class=insGet(game,"FindFirstChildOfClass")
-
+local find_first_child_of_class = insGet(game, "FindFirstChildOfClass")
+local get_players = insGet(plrs, "GetPlayers")
+local is_a = insGet(game, "IsA")
 
 local svc = { -- apparently findfirstchildofclass is faster than getservice?
-	players = find_first_child_of_class(game,"Players"),
-	rs = find_first_child_of_class(game,"ReplicatedStorage"),
-	debris = find_first_child_of_class(game,"Debris"),
-	run = find_first_child_of_class(game,"RunService"),
-	tween = find_first_child_of_class(game,"TweenService"),
+	players = find_first_child_of_class(game, "Players"),
+	rs = find_first_child_of_class(game, "ReplicatedStorage"),
+	debris = find_first_child_of_class(game, "Debris"),
+	run = find_first_child_of_class(game, "RunService"),
+	tween = find_first_child_of_class(game, "TweenService"),
 }
 
-local renderstepped=insGet(svc.run,"RenderStepped")
-local heartbeat=insGet(svc.run,"Heartbeat")
-local connect=heartbeat.Connect
-local get_property_changed_signal=insGet(game,"GetPropertyChangedSignal")
-local get_children=insGet(game,"GetChildren")
+local renderstepped = insGet(svc.run, "RenderStepped")
+local heartbeat = insGet(svc.run, "Heartbeat")
+local connect = heartbeat.Connect
+local get_property_changed_signal = insGet(game, "GetPropertyChangedSignal")
+local get_children = insGet(game, "GetChildren")
 
-local find_first_child=function(p,n,cl)
-	for i,v in next,get_children(p) do
-		if IsA(v,cl) and (insGet(v,"Name")==n) then
+local find_first_child_and_class_check = function(parent, instance, class) -- isnt this just findfirstchildofclass?
+	for _, v in next, get_children(parent) do
+		if is_a(v, class) and (insGet(v, "Name") == instance) then
 			return v
 		end
 	end
@@ -99,7 +96,7 @@ local game_event = {
 	tool = game_instance.events.ToolsEvent,
 }
 
-local local_player = ins_get(svc.players,"LocalPlayer")
+local local_player = ins_get(svc.players, "LocalPlayer")
 
 local player_data = local_player.PlayerData
 local note = game.ReplicatedStorage.Events.Note
@@ -215,7 +212,7 @@ local modded_gun_data = {
 		sound = 19,
 	},
 }
-for _, gun in next,modded_gun_data do
+for _, gun in next, modded_gun_data do
 	setmetatable(gun, {
 		__index = default_modded_gun_properties,
 	})
@@ -308,8 +305,8 @@ local cast_ray = function(origin, final)
 end
 
 local get_ammo_type = function(gun_name)
-	for ammo_category, gun_list in next,gun do
-		for _, name in next,gun_list do
+	for ammo_category, gun_list in next, gun do
+		for _, name in next, gun_list do
 			if name == gun_name then
 				return ammo_type[ammo_category]
 			end
@@ -336,14 +333,14 @@ local name_color = {
 
 local get_player_name_color = function(player)
 	local label = player.Character
-		and player.Character:FindFirstChild("NameTag")
-		and player.Character.NameTag:FindFirstChild("TextLabel")
+		and find_first_child_and_class_check(player.Character, "NameTag", "BillboardGui")
+		and find_first_child_and_class_check(player.Character.NameTag, "TextLabel", "TextLabel")
 	return (label and label.TextColor3) or name_color.white
 end
 
 local get_player_name_key = function(player)
 	local col = get_player_name_color(player)
-	for key, color_val in next,name_color do
+	for key, color_val in next, name_color do
 		if color_val == col then
 			return key
 		end
@@ -351,7 +348,7 @@ local get_player_name_key = function(player)
 	return "white"
 end
 
-for gun_name, data in next,modded_gun do
+for gun_name, data in next, modded_gun do
 	data.ammo_type = get_ammo_type(gun_name)
 end
 
@@ -420,7 +417,7 @@ local killaura_func = {
 			return {}
 		end
 		local targets = {}
-		for _, player in next,svc.players:GetPlayers() do
+		for _, player in next, get_players(svc.players) do
 			if player ~= local_player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
 				if killaura_whitelist[player.Name] then
 					continue
@@ -601,7 +598,7 @@ local on_render_stepped = {
 
 for _, ammo_name in next, ammo_type do
 	local ammo_stat = player_data:WaitForChild(ammo_name)
-	ammo_stat:get_property_changed_signal("Value"):Connect(function()
+	connect(get_property_changed_signal(ammo_stat, "Value"), function()
 		if legit.autobuy == true then
 			if ammo_stat.Value < 20 then
 				local key = ammo_type_to_key[ammo_name]
@@ -616,7 +613,7 @@ for _, ammo_name in next, ammo_type do
 	end)
 end
 
-local_player.Backpack.ChildAdded:Connect(function(child)
+connect(local_player.Backpack.ChildAdded, function(child)
 	if rage.auto_modder == true then
 		local handle = child:FindFirstChild("Handle")
 		if not handle then
