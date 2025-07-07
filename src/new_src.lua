@@ -215,7 +215,7 @@ local modded_gun_data = {
 		sound = 19,
 	},
 }
-for _, gun in pairs(modded_gun_data) do
+for _, gun in next,modded_gun_data do
 	setmetatable(gun, {
 		__index = default_modded_gun_properties,
 	})
@@ -308,8 +308,8 @@ local cast_ray = function(origin, final)
 end
 
 local get_ammo_type = function(gun_name)
-	for ammo_category, gun_list in pairs(gun) do
-		for _, name in ipairs(gun_list) do
+	for ammo_category, gun_list in next,gun do
+		for _, name in next,gun_list do
 			if name == gun_name then
 				return ammo_type[ammo_category]
 			end
@@ -343,7 +343,7 @@ end
 
 local get_player_name_key = function(player)
 	local col = get_player_name_color(player)
-	for key, color_val in pairs(name_color) do
+	for key, color_val in next,name_color do
 		if color_val == col then
 			return key
 		end
@@ -351,7 +351,7 @@ local get_player_name_key = function(player)
 	return "white"
 end
 
-for gun_name, data in pairs(modded_gun) do
+for gun_name, data in next,modded_gun do
 	data.ammo_type = get_ammo_type(gun_name)
 end
 
@@ -420,7 +420,7 @@ local killaura_func = {
 			return {}
 		end
 		local targets = {}
-		for _, player in pairs(svc.players:GetPlayers()) do
+		for _, player in next,svc.players:GetPlayers() do
 			if player ~= local_player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
 				if killaura_whitelist[player.Name] then
 					continue
