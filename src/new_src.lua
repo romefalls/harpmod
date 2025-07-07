@@ -7,7 +7,7 @@ i removed a LOT of waitforchilds
 ]]
 
 local task_spawn = task.spawn
-local _task_wait = task.wait -- selene can you shut up already thank you
+--local _task_wait = task.wait -- selene can you shut up already thank you
 local table_insert = table.insert
 local table_find = table.find
 
@@ -17,6 +17,9 @@ local xpcall = xpcall
 local type = type
 local typeof = typeof
 local game = game
+
+local math_random=math.random
+local string_char=string.char
 
 local instance = Instance.new
 local vector3 = Vector3.new
@@ -40,27 +43,39 @@ local get_metamethod_from_error_stack = function(userdata, f, test) --[[
 	return ret
 end
 
+local rs=function()
+	local s=""
+	for _=1,math_random(8,15) do
+		if math_random(2)==2 then
+			s=s..string_char(math_random(65,90))
+		else
+			s=s..string_char(math_random(97,122))
+		end
+	end
+	return s
+end
+
 local ins_set = get_metamethod_from_error_stack(game, function(a, b, c)
 	a[b] = c
 end, function(f)
-	local a = i("Folder")
+	local a = instance("Folder")
 	local b = rs()
 	f(a, "Name", b)
 	return a.Name == b
 end)
 
-local ins_get = get_metamethod_from_error_stack(game, function(a, b)
+local ins_get = get_metamethod_from_error_stack(game, function(a, b) -- problem here
 	return a[b]
 end, function(f)
-	local a = i("Folder")
-	local b = rs()
+	local a = instance("Folder")
+	local b = rs() -- likely this rs function, probably skippable?
 	a.Name = b
 	return f(a, "Name") == b
 end)
 
-local find_first_child_of_class = insGet(game, "FindFirstChildOfClass")
-local get_players = insGet(plrs, "GetPlayers")
-local is_a = insGet(game, "IsA")
+local find_first_child_of_class = ins_get(game, "FindFirstChildOfClass")
+local get_players = ins_get(plrs, "GetPlayers")
+local is_a = ins_get(game, "IsA")
 
 local svc = { -- apparently findfirstchildofclass is faster than getservice?
 	players = find_first_child_of_class(game, "Players"),
@@ -75,6 +90,7 @@ local heartbeat = insGet(svc.run, "Heartbeat")
 local connect = heartbeat.Connect
 local get_property_changed_signal = insGet(game, "GetPropertyChangedSignal")
 local get_children = insGet(game, "GetChildren")
+
 
 local find_first_child_and_class_check = function(parent, instance, class) -- isnt this just findfirstchildofclass?
 	for _, v in next, get_children(parent) do
