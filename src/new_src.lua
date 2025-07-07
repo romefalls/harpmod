@@ -284,7 +284,8 @@ local draw_ray_line = function(origin, final, color, transparency)
 		ray_part.CFrame = cframe(mid_point, final)
 		ray_part.Parent = workspace
 		tween(ray_part, tsi.sine_inout(0.5), { Transparency = 1, Size = vector3(0, 0, distance) })
-		svc.debris:AddItem(ray_part, 0.5)
+		task.wait(0.5)
+		ray_part:Destroy()
 	end)()
 end
 
