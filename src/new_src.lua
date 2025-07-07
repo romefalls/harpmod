@@ -73,11 +73,12 @@ local svc = { -- apparently findfirstchildofclass is faster than getservice?
 	debris = find_first_child_of_class(game, "Debris"),
 	run = find_first_child_of_class(game, "RunService"),
 	tween = find_first_child_of_class(game, "TweenService"),
+	ws = find_first_child_of_class(game, "Workspace")
 }
 
 local get_players = ins_get(svc.players, "GetPlayers")
 local is_a = ins_get(game, "IsA")
-local raycast = ins_get(ws, "Raycast")
+local raycast = ins_get(svc.ws, "Raycast")
 local renderstepped = ins_get(svc.run, "RenderStepped")
 local heartbeat = ins_get(svc.run, "Heartbeat")
 local connect = heartbeat.Connect
@@ -294,7 +295,7 @@ local cast_ray = function(origin, final)
 	ray_params.IgnoreWater = true
 
 	local direction = (final - origin)
-	local result = raycast(origin, direction, ray_params)
+	local result = raycast(svc.ws, origin, direction, ray_params)
 
 	if result then
 		local hit_pos = result.Position
