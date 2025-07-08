@@ -370,6 +370,18 @@ for gun_name, data in next, modded_gun do
 	data.ammo_type = get_ammo_type(gun_name)
 end
 
+local is_gun = function(tool)
+	local handle = find_first_child_and_class_check(tool, "Handle", "BasePart")
+	if not handle then
+		return
+	end
+	local has_fire = find_first_child_and_class_check(tool, "Fire", "Sound") -- i am way too lazy to find another way to check if this is a gun
+	local has_reload = find_first_child_and_class_check(tool, "Reload", "Sound")
+	if not has_fire and not has_reload then
+		return
+	end
+end
+
 local modify_gun = function(old_gun, new_gun_name, ammo_type, gun_sound)
 	if rage.auto_modder ~= true then
 		note:Fire("mod " .. old_gun, "Make sure to have your " .. old_gun .. " unequipped", 5)
@@ -466,20 +478,19 @@ local killaura_func = {
 
 local shoot_gun = function(x, y, z, humanoid)
 	local tool = local_player.Character:FindFirstChildOfClass("Tool")
-	if not tool then
-		return
+	if is_gun(tool) then
+		local args = {
+			[1] = 33,
+			[2] = cframe(x, y, z),
+			[3] = 2,
+			[4] = humanoid,
+			[5] = 100,
+			[6] = tool,
+			[7] = nil,
+			[8] = 1,
+		}
+		game_event.menu_action:FireServer(unpack(args))
 	end
-	local args = {
-		[1] = 33,
-		[2] = cframe(x, y, z),
-		[3] = 2,
-		[4] = humanoid,
-		[5] = 100,
-		[6] = tool,
-		[7] = nil,
-		[8] = 1,
-	}
-	game_event.menu_action:FireServer(unpack(args))
 end
 
 local swing_melee = function(target_player)
@@ -501,13 +512,11 @@ local reload_gun = function(amount)
 	if now - reload_settings.last_reload_time < reload_settings.reload_delay then
 		return
 	end
-	local tool = local_player.Character:FindFirstChildOfClass("Tool")
-	if not tool then
-		return
-	end
-
+		local tool = local_player.Character:FindFirstChildOfClass("Tool")
+	if is_gun(tool) then
 	game_event.reload_action:FireServer(get_ammo_type(tool.Name), amount, tool)
 	reload_settings.last_reload_time = now
+	end
 end
 
 function make_node_on_spawn() -- one day
@@ -637,24 +646,16 @@ end
 
 connect(local_player.Backpack.ChildAdded, function(child)
 	if rage.auto_modder == true then
-		local handle = find_first_child_and_class_check(child, "Handle", "BasePart")
-		if not handle then
-			return
+		if is_gun(child) then
+			local gun_name = child.Name
+			local mod_data = modded_gun[gun_name]
+
+			local new_name = mod_data.new_gun_name
+			local sound = mod_data.sound
+			local ammo = get_ammo_type(gun_name)
+
+			modify_gun(gun_name, new_name, ammo, sound)
 		end
-		local has_fire = find_first_child_and_class_check(handle, "Fire", "Sound") -- i am way too lazy to find another way to check if this is a gun
-		local has_reload = find_first_child_and_class_check(handle, "Rekoad", "Sound")
-		if not has_fire and not has_reload then
-			return
-		end
-
-		local gun_name = child.Name
-		local mod_data = modded_gun[gun_name]
-
-		local new_name = mod_data.new_gun_name
-		local sound = mod_data.sound
-		local ammo = get_ammo_type(gun_name)
-
-		modify_gun(gun_name, new_name, ammo, sound)
 	end
 end)
 
