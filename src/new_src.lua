@@ -299,6 +299,11 @@ local cast_ray = function(origin, final)
 			if tool then
 				table_insert(exclude, tool)
 			end
+			for _, accessory in next, get_children(v.Character) do
+				if accessory:IsA("Accessory") then
+					table_insert(exclude, accessory)
+				end
+			end
 		end
 	end
 	ray_params.FilterDescendantsInstances = exclude
@@ -371,15 +376,19 @@ for gun_name, data in next, modded_gun do
 end
 
 local is_gun = function(tool)
-	local handle = find_first_child_and_class_check(tool, "Handle", "BasePart")
+	if not tool then
+		return
+	end
+	local handle = tool:FindFirstChild("Handle")
 	if not handle then
 		return
 	end
-	local has_fire = find_first_child_and_class_check(tool, "Fire", "Sound") -- i am way too lazy to find another way to check if this is a gun
-	local has_reload = find_first_child_and_class_check(tool, "Reload", "Sound")
+	local has_fire = handle:FindFirstChild("Fire") -- i am way too lazy to find another way to check if this is a gun
+	local has_reload = handle:FindFirstChild("Reload")
 	if not has_fire and not has_reload then
-		return
+		return false
 	end
+	return true
 end
 
 local modify_gun = function(old_gun, new_gun_name, ammo_type, gun_sound)
@@ -512,10 +521,12 @@ local reload_gun = function(amount)
 	if now - reload_settings.last_reload_time < reload_settings.reload_delay then
 		return
 	end
-		local tool = local_player.Character:FindFirstChildOfClass("Tool")
-	if is_gun(tool) then
-	game_event.reload_action:FireServer(get_ammo_type(tool.Name), amount, tool)
-	reload_settings.last_reload_time = now
+	local tool = local_player.Character:FindFirstChildOfClass("Tool")
+	if tool then
+		if is_gun(tool) then
+			game_event.reload_action:FireServer(get_ammo_type(tool.Name), amount, tool)
+			reload_settings.last_reload_time = now
+		end
 	end
 end
 
@@ -542,7 +553,7 @@ local on_render_stepped = {
 				killaura_settings.cell.pending_update
 				and tick() - killaura_settings.last_kill_time > killaura_settings.shoot_delay
 			then
-				killaura_settings.cell.pending_update = false
+				killaura_settings.cell.pending_update = true -- setting this to true means that it will keep updating over and over again, functioning like a normal killaura
 				killaura_settings.last_kill_time = tick()
 				task_spawn(function()
 					local targets = killaura_func.get_nearby_cell_targets()
@@ -664,7 +675,7 @@ renderstepped:Connect(function()
 		xpcall(function()
 			task_spawn(v)
 		end, function(err)
-			warn("are you stupid: ", err)
+			note:Fire("are you stupid", err, 4)
 		end)
 	end
 end)
