@@ -4,6 +4,12 @@ note:
 you arent supposed to autorun this script
 i removed a LOT of waitforchilds
 
+
+:troll:
+5459982119,7485988593,7141616809,6216526940,5644827120,4899180116,7391765296,7488505563,7044363720
+5994725824,5999900363,5833333796,4995609156,5891839311,5699732631,5918270333
+66330310,10824058593,13994562389,9959698899,14753582362,14753582362,16930850454,14854926827,99611979328492
+7145824116,7145825706,9323462320,11676800530,12581448928,12669543527,13002675302,13479814214,13794250687,14067973844,14124935972
 ]]
 
 local task_spawn = task.spawn
@@ -61,7 +67,7 @@ local ins_get = get_metamethod_from_error_stack(game, function(a, b) -- problem 
 end, function(f)
 	local a = Instance.new("Folder")
 	local b = random_string()
-	a.Name = random_string()
+	a.Name = b
 	return f(a, "Name") == b
 end)
 
@@ -425,7 +431,7 @@ local killaura_settings = {
 		pending_update = true,
 	},
 	target = {
-		white_names = true,
+		white_names = false,
 		yellow_names = true,
 		red_names = true,
 	},
