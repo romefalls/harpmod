@@ -369,6 +369,7 @@ local name_color = {
 	white = color3(255, 255, 255),
 	yellow = color3(255, 187, 69),
 	red = color3(255, 33, 33),
+	government = color3(112, 186, 255),
 }
 
 local get_player_name_color = function(player)
@@ -446,6 +447,7 @@ local killaura_settings = {
 		white_names = false,
 		yellow_names = true,
 		red_names = true,
+		govt_workers = false,
 	},
 	radius = 200,
 	last_kill_time = 0,
@@ -785,6 +787,11 @@ local toggle = {
 			Default = killaura_settings.target.red_names,
 			Tooltip = "Killaura will target rednames if enabled.",
 		}),
+		name_govt = groupbox.killaura.dropdowns:AddToggle("govt_names", {
+			Text = "Government Workers",
+			Default = killaura_settings.target.govt_names,
+			Tooltip = "Killaura will target government agents (i.e. Soldiers, Detectives, Mayors) if enabled.",
+		}),
 	},
 }
 
@@ -806,6 +813,10 @@ end)
 
 toggle.killaura_target.name_red:OnChanged(function()
 	killaura_settings.target.red_names = toggle.killaura_target.name_red.Value
+end)
+
+toggle.killaura_target.name_govt:OnChanged(function()
+	killaura_settings.target.govt_names = toggle.killaura_target.name_govt.Value
 end)
 
 dropdown.killaura_player_whitelist:OnChanged(function()
