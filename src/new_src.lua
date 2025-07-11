@@ -11,7 +11,18 @@ i removed a LOT of waitforchilds
 66330310,10824058593,13994562389,9959698899,14753582362,14753582362,16930850454,14854926827,99611979328492
 7145824116,7145825706,9323462320,11676800530,12581448928,12669543527,13002675302,13479814214,13794250687,14067973844,14124935972
 ]]
-
+local ui = {
+	repo = "https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/",
+	library = loadstring(
+		game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/Library.lua")
+	)(),
+	man = loadstring(
+		game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/ThemeManager.lua")
+	)(),
+	man_save = loadstring(
+		game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/SaveManager.lua")
+	)(),
+}
 local task_spawn = task.spawn
 --local _task_wait = task.wait -- selene can you shut up already thank you
 local table_insert = table.insert
@@ -429,6 +440,7 @@ local killaura_settings = {
 		size = 4,
 		last_cell = nil,
 		pending_update = true,
+		always_scanning = true,
 	},
 	target = {
 		white_names = false,
@@ -441,11 +453,7 @@ local killaura_settings = {
 	last_target_index = 1,
 }
 
-local killaura_whitelist = {
-	Zhawrina = true,
-	Z6MN7P2A9Q79hUILLUiw = true,
-}
-
+local killaura_whitelist = {}
 local killaura_blacklist = {}
 
 local killaura_func = {
@@ -559,7 +567,11 @@ local on_render_stepped = {
 				killaura_settings.cell.pending_update
 				and tick() - killaura_settings.last_kill_time > killaura_settings.shoot_delay
 			then
-				killaura_settings.cell.pending_update = true -- setting this to true means that it will keep updating over and over again, functioning like a normal killaura
+				if killaura_settings.cell.always_scanning == true then
+					killaura_settings.cell.pending_update = true -- setting this to true means that it will keep updating over and over again, functioning like a normal killaura
+				else
+					killaura_settings.cell.pending_update = false
+				end
 				killaura_settings.last_kill_time = tick()
 				task_spawn(function()
 					local targets = killaura_func.get_nearby_cell_targets()
@@ -687,3 +699,84 @@ renderstepped:Connect(function()
 end)
 
 note:Fire("success", "ran successfully", 5)
+
+local window = ui.library:CreateWindow({
+	Title = "Harpmod 2",
+	Center = true,
+	AutoShow = true,
+	TabPadding = 8,
+	MenuFadeTime = 0.2,
+})
+
+local tab = {
+	main = window:AddTab("Main"),
+	killaura = window:AddTab("Killaura"),
+	rage = window:AddTab("Rage"),
+	legit = window:AddTab("Legit"),
+	gun_modder = window:AddTab("Gun Modder")
+}
+
+local tab_groupbox_left = tab.main:AddLeftGroupbox("Hi man")
+local groupbox = {
+	killaura = {
+		bools = tab.killaura:AddLeftGroupbox("Bools"),
+		sliders = tab.killaura:AddRightGroupbox("Sliders"),
+		toggles = tab.killaura:AddLeftGroupbox("Toggles"),
+		dropdowns = tab.killaura:AddRightGroupbox("Targets"),
+	},
+}
+
+local dropdown = {
+	killaura_player_whitelist = groupbox.killaura.dropdowns:AddDropdown("player_whitelist", {
+		SpecialType = "Player",
+		Text = "Whitelist",
+		Tooltip = "Killaura will not target these players for any reason",
+		Multi = true,
+	}),
+	killaura_player_blacklist = groupbox.killaura.dropdowns:AddDropdown("player_blacklist", {
+		SpecialType = "Player",
+		Text = "Blacklist",
+		Tooltip = "Killaura will target these players regardless of their name color",
+		Multi = true,
+	}),
+	name_color_targets = groupbox.killaura.dropdowns:AddDropdown("name_color_targets", {
+		Text = "Name color targets",
+		Tooltip = "Killaura will target these players if their name colors match",
+		Values = killaura_settings.target,
+		Multi = true,
+	})
+}
+
+local toggle = {
+	test = tab_groupbox_left:AddToggle("MyToggle", {
+		Text = "This is a toggle",
+		Default = true,
+		Tooltip = "This is a tooltip",
+	}),
+	killaura_on = groupbox.killaura.bools:AddToggle("killaura_enabled", {
+		Text = "Enabled",
+		Default = rage.killaura,
+		Tooltip = "Toggles killaura on or off"
+	}),
+	killaura_spatial_partitioning = groupbox.killaura.bools:AddToggle("killaura_spatial_partitioning", {
+		Text = "Always Scanning",
+		Default = killaura_settings.cell.always_scanning,
+		Tooltip = "If set to 'off', will only scan when camera enters a new cell."
+	})
+}
+
+dropdown.killaura_player_whitelist:OnChanged(function()
+	killaura_whitelist = dropdown.killaura_player_whitelist.Value
+end)
+
+dropdown.killaura_player_blacklist:OnChanged(function()
+	killaura_blacklist = dropdown.killaura_player_blacklist.Value
+end)
+
+toggle.killaura_on:OnChanged(function()
+	rage.killaura = toggle.killaura_on.Value
+end)
+
+toggle.killaura_spatial_partitioning:OnChanged(function()
+	killaura_settings.cell.always_scanning = toggle.killaura_spatial_partitioning.Value
+end)
