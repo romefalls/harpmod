@@ -202,7 +202,7 @@ local gun = {
 	},
 }
 
-local melee = {
+local _melee = {
 	"Toilet Plunger",
 }
 
@@ -516,7 +516,7 @@ local shoot_gun = function(x, y, z, humanoid)
 	end
 end
 
-local swing_melee = function(target_player)
+local _swing_melee = function(target_player)
 	local args = {
 		34,
 		workspace:FindFirstChild(target_player):WaitForChild("Humanoid"),
@@ -542,15 +542,6 @@ local reload_gun = function(amount)
 			reload_settings.last_reload_time = now
 		end
 	end
-end
-
-function make_node_on_spawn() -- one day
-	local args = {
-		1,
-		"Node",
-		cframe(1, 2, 3),
-	}
-	game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("BuildingEvent"):FireServer(unpack(args))
 end
 
 local on_render_stepped = {
@@ -713,7 +704,7 @@ local tab = {
 	killaura = window:AddTab("Killaura"),
 	rage = window:AddTab("Rage"),
 	legit = window:AddTab("Legit"),
-	gun_modder = window:AddTab("Gun Modder")
+	gun_modder = window:AddTab("Gun Modder"),
 }
 
 local tab_groupbox_left = tab.main:AddLeftGroupbox("Hi man")
@@ -725,7 +716,26 @@ local groupbox = {
 		dropdowns = tab.killaura:AddRightGroupbox("Targets"),
 	},
 }
-
+local slider = {
+	killaura = {
+		range = groupbox.killaura.sliders:AddSlider("killaura_range", {
+			Text = "Range",
+			Default = killaura_settings.radius,
+			Min = 1,
+			Max = 225,
+			Rounding = 1,
+			Compact = false,
+		}),
+		speed = groupbox.killaura.sliders:AddSlider("killaura_speed", {
+			Text = "Speed",
+			Default = killaura_settings.shoot_delay,
+			Min = 0,
+			Max = 5,
+			Rounding = 5,
+			Compact = false,
+		}),
+	},
+}
 local dropdown = {
 	killaura_player_whitelist = groupbox.killaura.dropdowns:AddDropdown("player_whitelist", {
 		SpecialType = "Player",
@@ -739,12 +749,6 @@ local dropdown = {
 		Tooltip = "Killaura will target these players regardless of their name color",
 		Multi = true,
 	}),
-	name_color_targets = groupbox.killaura.dropdowns:AddDropdown("name_color_targets", {
-		Text = "Name color targets",
-		Tooltip = "Killaura will target these players if their name colors match",
-		Values = killaura_settings.target,
-		Multi = true,
-	})
 }
 
 local toggle = {
@@ -756,14 +760,53 @@ local toggle = {
 	killaura_on = groupbox.killaura.bools:AddToggle("killaura_enabled", {
 		Text = "Enabled",
 		Default = rage.killaura,
-		Tooltip = "Toggles killaura on or off"
+		Tooltip = "Toggles killaura on or off",
 	}),
 	killaura_spatial_partitioning = groupbox.killaura.bools:AddToggle("killaura_spatial_partitioning", {
 		Text = "Always Scanning",
 		Default = killaura_settings.cell.always_scanning,
-		Tooltip = "If set to 'off', will only scan when camera enters a new cell."
-	})
+		Tooltip = "If set to 'off', killaura will only scan when camera enters a new cell.",
+	}),
+	killaura_target = { --[[
+		since linoria weird and i lazy, ill do it like this:
+	]]
+		name_white = groupbox.killaura.dropdowns:AddToggle("white_names", {
+			Text = "Whitenames",
+			Default = killaura_settings.target.white_names,
+			Tooltip = "Killaura will target whitenames if enabled.",
+		}),
+		name_yellow = groupbox.killaura.dropdowns:AddToggle("yellow_names", {
+			Text = "Yellownames",
+			Default = killaura_settings.target.yellow_names,
+			Tooltip = "Killaura will target yellownames if enabled.",
+		}),
+		name_red = groupbox.killaura.dropdowns:AddToggle("red_names", {
+			Text = "Rednames",
+			Default = killaura_settings.target.red_names,
+			Tooltip = "Killaura will target rednames if enabled.",
+		}),
+	},
 }
+
+slider.killaura.range:OnChanged(function()
+	killaura_settings.radius = slider.killaura.range.Value
+end)
+
+slider.killaura.speed:OnChanged(function()
+	killaura_settings.shoot_delay = slider.killaura.speed.Value
+end)
+
+toggle.killaura_target.name_white:OnChanged(function()
+	killaura_settings.target.white_names = toggle.killaura_target.name_white.Value
+end)
+
+toggle.killaura_target.name_yellow:OnChanged(function()
+	killaura_settings.target.yellow_names = toggle.killaura_target.name_yellow.Value
+end)
+
+toggle.killaura_target.name_red:OnChanged(function()
+	killaura_settings.target.red_names = toggle.killaura_target.name_red.Value
+end)
 
 dropdown.killaura_player_whitelist:OnChanged(function()
 	killaura_whitelist = dropdown.killaura_player_whitelist.Value
