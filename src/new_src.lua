@@ -65,6 +65,20 @@ local cframe = CFrame.new
 local enum = Enum
 local raycast_params = RaycastParams.new
 
+local color = {
+	killaura = {
+		unable_to_find_line_of_sight = color3(255, 50, 50),
+		found_line_of_sight_and_firing = color3(50, 255, 50),
+		no_humanoid_root_part_found = color3(100, 100, 100),
+	},
+}
+
+local transparency = {
+	killaura = {
+		idfk = 0.5,
+	},
+}
+
 local random_string = function()
 	local s = ""
 	for _ = 1, math_random(8, 15) do
@@ -93,7 +107,7 @@ local get_metamethod_from_error_stack = function(userdata, f, test) --[[
 	return ret
 end
 
-local ins_get = get_metamethod_from_error_stack(game, function(a, b) 
+local ins_get = get_metamethod_from_error_stack(game, function(a, b)
 	return a[b]
 end, function(f)
 	local a = Instance.new("Folder")
@@ -195,6 +209,7 @@ local gun = {
 	heavy = {
 		"Laser Musket",
 		"Remington",
+		-- ...
 	},
 	pistol = {
 		"Deagle",
@@ -375,7 +390,6 @@ local cast_ray = function(origin, final)
 		end
 	end
 	ray_params.FilterDescendantsInstances = exclude
-
 	local result = raycast(svc.ws, origin, direction, ray_params)
 
 	if result then
@@ -517,41 +531,45 @@ local killaura_func = {
 		return workspace.CurrentCamera.CFrame.Position // killaura_settings.cell.size
 	end,
 	get_nearby_cell_targets = function()
-		local my_char = local_player.Character
-		if not my_char then
-			return {}
-		end
-		local my_hrp = find_first_child_and_class_check(my_char, "HumanoidRootPart", "BasePart")
-		if not my_hrp then
-			return {}
-		end
-		local targets = {}
-		for _, player in next, get_players(svc.players) do
-			if
-				player ~= local_player
-				and player.Character
-				and find_first_child_and_class_check(player.Character, "HumanoidRootPart", "BasePart")
-			then
-				if killaura_whitelist[player.Name] then
-					continue
-				end
-				local name_key = get_player_name_key(player)
-				local is_allowed_color = killaura_settings.target[name_key .. "_names"]
-				if not is_allowed_color then
-					continue
-				end
-				if #killaura_blacklist > 0 and not table_find(killaura_blacklist, player.Name) then
-					continue
-				end
-				local enemy_hrp = player.Character.HumanoidRootPart
-				local distance = (enemy_hrp.Position - my_hrp.Position).Magnitude
+		debug_profilebegin("harpmod.killaura_func.get_nearby_cell_targets")
+		task.spawn(function()
+			local my_char = local_player.Character
+			if not my_char then
+				return {}
+			end
+			local my_hrp = find_first_child_and_class_check(my_char, "HumanoidRootPart", "BasePart")
+			if not my_hrp then
+				return {}
+			end
+			local targets = {}
+			for _, player in next, get_players(svc.players) do
+				if
+					player ~= local_player
+					and player.Character
+					and find_first_child_and_class_check(player.Character, "HumanoidRootPart", "BasePart")
+				then
+					if killaura_whitelist[player.Name] then
+						continue
+					end
+					local name_key = get_player_name_key(player)
+					local is_allowed_color = killaura_settings.target[name_key .. "_names"]
+					if not is_allowed_color then
+						continue
+					end
+					if #killaura_blacklist > 0 and not table_find(killaura_blacklist, player.Name) then
+						continue
+					end
+					local enemy_hrp = player.Character.HumanoidRootPart
+					local distance = (enemy_hrp.Position - my_hrp.Position).Magnitude
 
-				if distance < killaura_settings.radius then
-					table_insert(targets, { player = player, part = enemy_hrp })
+					if distance < killaura_settings.radius then
+						table_insert(targets, { player = player, part = enemy_hrp })
+					end
 				end
 			end
-		end
-		return targets
+			return targets
+		end)
+		debug_profileend()
 	end,
 }
 
@@ -840,10 +858,10 @@ local legit = {
 
 ]]
 local toggle = {
-	profiling_on = groupbox.main.debug:AddToggle("microprofiler_labels_on",{
+	profiling_on = groupbox.main.debug:AddToggle("microprofiler_labels_on", {
 		Text = "Profiling",
 		Default = profiling_enabled,
-		Tooltip = "Starts profiling for a MicroProfiler label. Disable if you don't know what that means."
+		Tooltip = "Starts profiling for a MicroProfiler label. Disable if you don't know what that means.",
 	}),
 	aimbot_on = groupbox.rage.toggles:AddToggle("aimbot_on", {
 		Text = "Aimbot",
