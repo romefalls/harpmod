@@ -6,10 +6,11 @@ i removed a LOT of waitforchilds
 
 
 :troll:
-5459982119,7485988593,7141616809,6216526940,5644827120,4899180116,7391765296,7488505563,7044363720
-5994725824,5999900363,5833333796,4995609156,5891839311,5699732631,5918270333
-66330310,10824058593,13994562389,9959698899,14753582362,14753582362,16930850454,14854926827,99611979328492
-7145824116,7145825706,9323462320,11676800530,12581448928,12669543527,13002675302,13479814214,13794250687,14067973844,14124935972
+5459982119,7485988593,7141616809,6216526940,5644827120,4899180116,7391765296,7488505563,7044363720 -- fur?
+5994725824,5999900363,5833333796,4995609156,5891839311,5699732631,5918270333 --deleted?
+66330310,10824058593,13994562389,9959698899,14753582362,14753582362,16930850454,14854926827,99611979328492 --idfk?
+7145824116,7145825706,9323462320,11676800530,12581448928,12669543527,13002675302,13479814214,13794250687,14067973844,14124935972 --zaak
+17814441976,109552074033966,18613673779,135872614955430,128593425863840,76612888997160,126205541378879,13206455309,120589223050335,15729409885,11788143966,12965267930,136945645973532,136573284940700,114875031523165
 ]]
 local ui = {
 	repo = "https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/",
@@ -59,7 +60,7 @@ end
 
 local get_metamethod_from_error_stack = function(userdata, f, test) --[[
 		full disclosure:
-		i dont know what the fuck this does
+		i dont know what the freak this does
 		this is probably elite roblox knowledge,
 		for those uninitiated, this is like reading c after thousands of years of using lua
 	]]
@@ -280,6 +281,39 @@ local debug = {
 local tween = function(i, t, p)
 	return svc.tween:Create(i, t, p):Play()
 end
+local tracked_items = {}
+
+local track_character = function(character)
+	if not character then
+		return
+	end
+	local items = {}
+
+	for _, desc in next, character:GetDescendants() do
+		if desc:IsA("Tool") or desc:IsA("Accessory") then
+			table_insert(items, desc)
+		end
+	end
+
+	tracked_items[character] = items
+
+	character.DescendantAdded:Connect(function(desc)
+		if desc:IsA("Tool") or desc:IsA("Accessory") then
+			table_insert(tracked_items[character], desc)
+		end
+	end)
+
+	character.AncestryChanged:Connect(function(_, parent)
+		if not parent then
+			tracked_items[character] = nil
+		end
+	end)
+end
+
+for _, player in next, get_players(svc.players) do
+	track_character(player.Character)
+	player.CharacterAdded:Connect(track_character)
+end
 
 local draw_ray_line = function(origin, final, color, transparency)
 	coroutine.wrap(function()
@@ -307,24 +341,17 @@ end
 
 local cast_ray = function(origin, final)
 	local ray_params = raycast_params()
+	local exclude = { local_player.Character, workspace.Vehicles }
 	ray_params.FilterType = enum.RaycastFilterType.Exclude
 	ray_params.IgnoreWater = true
-	local exclude = { local_player.Character, workspace.Vehicles }
-	for _, v in next, get_players(svc.players) do
-		if v.Character then
-			local tool = v.Character:FindFirstChildOfClass("Tool")
-			if tool then
-				table_insert(exclude, tool)
-			end
-			for _, accessory in next, get_children(v.Character) do
-				if accessory:IsA("Accessory") then
-					table_insert(exclude, accessory)
-				end
-			end
+	local direction = (final - origin)
+	for _, items in next, tracked_items do
+		for _, item in next, items do
+			table_insert(exclude, item)
 		end
 	end
 	ray_params.FilterDescendantsInstances = exclude
-	local direction = (final - origin)
+
 	local result = raycast(svc.ws, origin, direction, ray_params)
 
 	if result then
@@ -709,13 +736,15 @@ local tab = {
 	gun_modder = window:AddTab("Gun Modder"),
 }
 
-local tab_groupbox_left = tab.main:AddLeftGroupbox("Hi man")
 local groupbox = {
 	killaura = {
 		bools = tab.killaura:AddLeftGroupbox("Bools"),
 		sliders = tab.killaura:AddRightGroupbox("Sliders"),
 		toggles = tab.killaura:AddLeftGroupbox("Toggles"),
 		dropdowns = tab.killaura:AddRightGroupbox("Targets"),
+	},
+	rage = {
+		toggles = tab.killaura:AddLeftGroupbox("Misc"),
 	},
 }
 local slider = {
@@ -752,12 +781,39 @@ local dropdown = {
 		Multi = true,
 	}),
 }
+--[[
 
+local rage = {
+	killaura = true,
+	aimbot = false,
+	auto_reload = true,
+	auto_modder = true,
+	auto_cola = true, -- for normal ones
+	cola_god = true, -- for mythic one
+}
+
+local legit = {
+	autobuy = true,
+	max_hunger = true,
+}
+
+
+]]
 local toggle = {
-	test = tab_groupbox_left:AddToggle("MyToggle", {
-		Text = "This is a toggle",
-		Default = true,
-		Tooltip = "This is a tooltip",
+	aimbot_on = groupbox.rage.toggles:AddToggle("aimbot_on", {
+		Text = "Aimbot",
+		Default = rage.aimbot,
+		Tooltip = "Toggles aimbot on or off. Warning: doesn't do anything rn",
+	}),
+	auto_reload = groupbox.rage.toggles:AddToggle("auto_reload", {
+		Text = "Auto Reload",
+		Default = rage.auto_reload,
+		Tooltip = "Auto Reload will reload any gun that you hold instantly.",
+	}),
+	auto_modder = groupbox.rage.toggles:AddToggle("auto_modder_on", {
+		Text = "Auto Modder",
+		Default = rage.auto_modder,
+		Tooltip = "Modifies your guns to have custom stats. Warning: very janky",
 	}),
 	killaura_on = groupbox.killaura.bools:AddToggle("killaura_enabled", {
 		Text = "Enabled",
@@ -794,6 +850,17 @@ local toggle = {
 		}),
 	},
 }
+toggle.aimbot_on:OnChanged(function()
+	rage.aimbot = toggle.aimbot_on.Value
+end)
+
+toggle.auto_reload:OnChanged(function()
+	rage.auto_reload = toggle.auto_reload.Value
+end)
+
+toggle.auto_modder:OnChanged(function()
+	rage.auto_modder = toggle.auto_modder.Value
+end)
 
 slider.killaura.range:OnChanged(function()
 	killaura_settings.radius = slider.killaura.range.Value
