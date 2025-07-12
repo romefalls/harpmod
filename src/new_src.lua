@@ -490,7 +490,7 @@ local modify_gun = function(old_gun, new_gun_name, ammo_type, gun_sound)
 	if rage.auto_modder ~= true then
 		note:Fire("mod " .. old_gun, "Make sure to have your " .. old_gun .. " unequipped", 5)
 	end
-	local gun = local_player.Backpack:WaitForChild(old_gun)
+	local gun = wait_for_child(local_player.Backpack,old_gun)
 	gun.LocalScript:Destroy()
 	require(svc.rs.Modules.TS[(false and "ANS") or "GNS"]).Initiate(
 		gun,
@@ -551,10 +551,12 @@ local killaura_func = {
 		end
 		local targets = {}
 		for _, player in next, get_players(svc.players) do
+			debug_profilebegin("player_" .. player.Name)
 			if player ~= local_player and player.Character and wait_for_child(player.Character, "HumanoidRootPart") then
 				if killaura_whitelist[player.Name] then
 					continue
 				end
+				debug_profilebegin("player_" .. player.Name .. " checks")
 				local name_key = get_player_name_key(player)
 				local is_allowed_color = killaura_settings.target[name_key .. "_names"]
 				if not is_allowed_color then
@@ -569,7 +571,9 @@ local killaura_func = {
 				if distance < killaura_settings.radius then
 					table_insert(targets, { player = player, part = enemy_hrp })
 				end
+				debug_profileend()
 			end
+			debug_profileend()
 		end
 		debug_profileend()
 		return targets
@@ -625,7 +629,7 @@ local on_render_stepped = {
 	killaura = function()
 		if rage.killaura == true then
 			debug_profilebegin("harpmod.on_render_stepped.killaura")
-			local get_pos = local_player.Character:WaitForChild("HumanoidRootPart").CFrame.Position
+			local get_pos = wait_for_child(local_player.Character,"HumanoidRootPart").CFrame.Position
 
 			local current_cell = killaura_func.get_current_cell()
 			if current_cell ~= killaura_settings.cell.last_cell then
@@ -653,7 +657,7 @@ local on_render_stepped = {
 							end
 							local target = targets[killaura_settings.last_target_index]
 							local pos = target.part.Position
-							local hum = target.part.Parent:WaitForChild("Humanoid")
+							local hum = wait_for_child(target.part.Parent,"Humanoid")
 							if cast_ray(get_pos, pos) then
 								shoot_gun(pos.X, pos.Y, pos.Z, hum)
 								break
@@ -704,6 +708,7 @@ local on_render_stepped = {
 			local_player.PlayerData.Hunger.Value = 100
 		end
 	end,
+	--[[
 	auto_cola = function()
 		local character = local_player.Character
 		if not character then
@@ -729,7 +734,7 @@ local on_render_stepped = {
 }
 
 for _, ammo_name in next, ammo_type do
-	local ammo_stat = player_data:WaitForChild(ammo_name)
+	local ammo_stat = wait_for_child(player_data,ammo_name)
 	connect(get_property_changed_signal(ammo_stat, "Value"), function()
 		if legit.autobuy == true then
 			debug_profilebegin("harpmod.auto_buy")
