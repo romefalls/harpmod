@@ -24,6 +24,9 @@ local ui = {
 		game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/SaveManager.lua")
 	)(),
 }
+
+local profiling_enabled = true
+
 local task_spawn = task.spawn
 --local _task_wait = task.wait -- selene can you shut up already thank you
 local table_insert = table.insert
@@ -37,7 +40,23 @@ local typeof = typeof
 local game = game
 
 local math_random = math.random
+local math_ceil = math.ceil
 local string_char = string.char
+
+local profile_begin = debug.profilebegin
+local profile_end = debug.profileend
+
+local debug_profilebegin = function(str)
+	if profiling_enabled then
+		profile_begin(str)
+	end
+end
+
+local debug_profileend = function()
+	if profiling_enabled then
+		profile_end()
+	end
+end
 
 local instance = Instance.new
 local vector3 = Vector3.new
@@ -284,6 +303,7 @@ end
 local tracked_items = {}
 
 local track_character = function(character)
+	debug_profilebegin("harpmod.track_character")
 	if not character then
 		return
 	end
@@ -308,6 +328,7 @@ local track_character = function(character)
 			tracked_items[character] = nil
 		end
 	end)
+	debug_profileend()
 end
 
 for _, player in next, get_players(svc.players) do
@@ -316,6 +337,7 @@ for _, player in next, get_players(svc.players) do
 end
 
 local draw_ray_line = function(origin, final, color, transparency)
+	debug_profilebegin("harpmod.draw_ray_line")
 	coroutine.wrap(function()
 		local ray_part = instance("Part")
 		ray_part.Anchored = true
@@ -337,9 +359,11 @@ local draw_ray_line = function(origin, final, color, transparency)
 		task.wait(0.5)
 		ray_part:Destroy()
 	end)()
+	debug_profileend()
 end
 
 local cast_ray = function(origin, final)
+	debug_profilebegin("harpmod.cast_ray")
 	local ray_params = raycast_params()
 	local exclude = { local_player.Character, workspace.Vehicles }
 	ray_params.FilterType = enum.RaycastFilterType.Exclude
@@ -360,13 +384,16 @@ local cast_ray = function(origin, final)
 		local distance_to_target = (hit_pos - final).Magnitude
 		if distance_to_target < 2 then
 			draw_ray_line(origin, hit_pos, color3(50, 255, 50))
+			debug_profileend()
 			return true
 		else
 			draw_ray_line(origin, hit_pos, color3(255, 50, 50), 0.6)
+			debug_profileend()
 			return false
 		end
 	else
 		draw_ray_line(origin, origin + direction, color3(100, 100, 100))
+		debug_profileend()
 		return false
 	end
 end
@@ -576,6 +603,7 @@ end
 local on_render_stepped = {
 	killaura = function()
 		if rage.killaura == true then
+			debug_profilebegin("harpmod.on_render_stepped.killaura")
 			local get_pos = local_player.Character:WaitForChild("HumanoidRootPart").CFrame.Position
 
 			local current_cell = killaura_func.get_current_cell()
@@ -612,9 +640,10 @@ local on_render_stepped = {
 						end
 					end
 				end)
+				debug_profileend()
 			end
 			if debug.enabled then
-				local range = math.ceil(killaura_settings.radius / killaura_settings.cell.size)
+				local range = math_ceil(killaura_settings.radius / killaura_settings.cell.size)
 				local current_cell = get_pos // killaura_settings.cell.size
 				for x = -range, range do
 					for y = -range, range do
@@ -644,7 +673,9 @@ local on_render_stepped = {
 	end,
 	auto_reload = function()
 		if rage.auto_reload == true then
+			debug_profilebegin("harpmod.on_render_stepped.auto_reload")
 			reload_gun(5)
+			debug_profileend()
 		end
 	end,
 	max_hunger = function()
@@ -680,6 +711,7 @@ for _, ammo_name in next, ammo_type do
 	local ammo_stat = player_data:WaitForChild(ammo_name)
 	connect(get_property_changed_signal(ammo_stat, "Value"), function()
 		if legit.autobuy == true then
+			debug_profilebegin("harpmod.auto_buy")
 			if ammo_stat.Value < 20 then
 				local key = ammo_type_to_key[ammo_name]
 				local item_name_in_shop = ammo_type_in_shop[key]
@@ -689,12 +721,14 @@ for _, ammo_name in next, ammo_type do
 					warn("no matching shop item for", ammo_name)
 				end
 			end
+			debug_profileend()
 		end
 	end)
 end
 
 connect(local_player.Backpack.ChildAdded, function(child)
 	if rage.auto_modder == true then
+		debug_profilebegin("harpmod.lp.bp.ChildAdded.auto_modder")
 		if is_gun(child) then
 			local gun_name = child.Name
 			local mod_data = modded_gun[gun_name]
@@ -705,10 +739,12 @@ connect(local_player.Backpack.ChildAdded, function(child)
 
 			modify_gun(gun_name, new_name, ammo, sound)
 		end
+		debug_profileend()
 	end
 end)
 
 renderstepped:Connect(function()
+	debug_profilebegin("harpmod.renderstepped")
 	for _, v in next, on_render_stepped do
 		xpcall(function()
 			task_spawn(v)
@@ -716,6 +752,7 @@ renderstepped:Connect(function()
 			note:Fire("are you stupid", err, 4)
 		end)
 	end
+	debug_profileend()
 end)
 
 note:Fire("success", "ran successfully", 5)
@@ -737,6 +774,9 @@ local tab = {
 }
 
 local groupbox = {
+	main = {
+		debug = tab.main:AddLeftGroupbox("Debugging"),
+	},
 	killaura = {
 		bools = tab.killaura:AddLeftGroupbox("Bools"),
 		sliders = tab.killaura:AddRightGroupbox("Sliders"),
@@ -800,6 +840,11 @@ local legit = {
 
 ]]
 local toggle = {
+	profiling_on = groupbox.main.debug:AddToggle("microprofiler_labels_on",{
+		Text = "Profiling",
+		Default = profiling_enabled,
+		Tooltip = "Starts profiling for a MicroProfiler label. Disable if you don't know what that means."
+	}),
 	aimbot_on = groupbox.rage.toggles:AddToggle("aimbot_on", {
 		Text = "Aimbot",
 		Default = rage.aimbot,
@@ -850,6 +895,11 @@ local toggle = {
 		}),
 	},
 }
+
+toggle.profiling_on:OnChanged(function()
+	profiling_enabled = toggle.profiling_on.Value
+end)
+
 toggle.aimbot_on:OnChanged(function()
 	rage.aimbot = toggle.aimbot_on.Value
 end)
