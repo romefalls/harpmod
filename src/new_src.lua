@@ -7,6 +7,58 @@
 17814441976,109552074033966,18613673779,135872614955430,128593425863840,76612888997160,126205541378879,13206455309,120589223050335,15729409885,11788143966,12965267930,136945645973532,136573284940700,114875031523165
 ]]
 
+local rage = {
+	killaura = true,
+	aimbot = false,
+	auto_reload = true,
+	auto_modder = true,
+	auto_cola = true, -- for normal ones
+	cola_god = true, -- for mythic one
+}
+
+local legit = {
+	autobuy = true,
+	max_hunger = true,
+}
+
+local killaura_settings = {
+	cell = {
+		size = 4,
+		last_cell = nil,
+		pending_update = true,
+		always_scanning = true,
+	},
+	target = {
+		white_names = false,
+		yellow_names = true,
+		red_names = true,
+		govt_workers = false,
+	},
+	radius = 200,
+	last_kill_time = 0,
+	shoot_delay = 0.045,
+	last_target_index = 1,
+}
+
+local reload_settings = {
+	last_reload_time = 0,
+	reload_delay = 0.1, -- s
+}
+
+local color = {
+	killaura = {
+		unable_to_find_line_of_sight = color3(255, 50, 50),
+		found_line_of_sight_and_firing = color3(50, 255, 50),
+		no_result_was_found = color3(100, 100, 100),
+	},
+}
+
+local transparency = {
+	killaura = {
+		idfk = 0.5,
+	},
+}
+
 local ui = {
 	repo = "https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/",
 	library = loadstring(
@@ -60,19 +112,14 @@ local cframe = CFrame.new
 local enum = Enum
 local raycast_params = RaycastParams.new
 
-local color = {
-	killaura = {
-		unable_to_find_line_of_sight = color3(255, 50, 50),
-		found_line_of_sight_and_firing = color3(50, 255, 50),
-		no_result_was_found = color3(100, 100, 100),
-	},
-}
 
-local transparency = {
-	killaura = {
-		idfk = 0.5,
-	},
-}
+
+
+
+local tracked_items = {}
+
+local killaura_whitelist = {}
+local killaura_blacklist = {}
 
 local random_string = function()
 	local s = ""
@@ -162,20 +209,6 @@ local game_event = {
 	tool = game_instance.events.ToolsEvent,
 }
 
-local rage = {
-	killaura = true,
-	aimbot = false,
-	auto_reload = true,
-	auto_modder = true,
-	auto_cola = true, -- for normal ones
-	cola_god = true, -- for mythic one
-}
-
-local legit = {
-	autobuy = true,
-	max_hunger = true,
-}
-
 local player_data = local_player.PlayerData
 local note = game_instance.events.Note
 
@@ -243,6 +276,7 @@ local gun = {
 
 local _melee = {
 	"Toilet Plunger",
+	"Wooden Sword", -- i need more
 }
 
 local default_modded_gun_properties = {
@@ -310,7 +344,6 @@ local debug = {
 			part.Color = color or color3(0, 255, 0)
 			part.Position = (cell_vec3 * 4) + size / 2
 			part.Parent = workspace
-
 			svc.debris:AddItem(part, 1.5)
 		end,
 	},
@@ -319,7 +352,6 @@ local debug = {
 local tween = function(i, t, p)
 	return svc.tween:Create(i, t, p):Play()
 end
-local tracked_items = {}
 
 local track_character = function(character)
 	debug_profilebegin("harpmod.track_character")
@@ -508,28 +540,6 @@ local modify_gun = function(old_gun, new_gun_name, ammo_type, gun_sound)
 	end
 end
 
-local killaura_settings = {
-	cell = {
-		size = 4,
-		last_cell = nil,
-		pending_update = true,
-		always_scanning = true,
-	},
-	target = {
-		white_names = false,
-		yellow_names = true,
-		red_names = true,
-		govt_workers = false,
-	},
-	radius = 200,
-	last_kill_time = 0,
-	shoot_delay = 0.045,
-	last_target_index = 1,
-}
-
-local killaura_whitelist = {}
-local killaura_blacklist = {}
-
 local killaura_func = {
 	get_current_cell = function()
 		return workspace.CurrentCamera.CFrame.Position // killaura_settings.cell.size
@@ -601,10 +611,6 @@ local _swing_melee = function(target_player)
 	game_event.menu_action:FireServer(unpack(args))
 end
 
-local reload_settings = {
-	last_reload_time = 0,
-	reload_delay = 0.1, -- s
-}
 
 local reload_gun = function(amount)
 	local now = tick()
@@ -748,8 +754,8 @@ for _, ammo_name in next, ammo_type do
 end
 
 connect(local_player.Backpack.ChildAdded, function(child)
+	debug_profilebegin("harpmod.lp.bp.ChildAdded.auto_modder")
 	if rage.auto_modder == true then
-		debug_profilebegin("harpmod.lp.bp.ChildAdded.auto_modder")
 		if is_gun(child) then
 			local gun_name = child.Name
 			local mod_data = modded_gun[gun_name]
@@ -760,8 +766,8 @@ connect(local_player.Backpack.ChildAdded, function(child)
 
 			modify_gun(gun_name, new_name, ammo, sound)
 		end
-		debug_profileend()
 	end
+	debug_profileend()
 end)
 
 renderstepped:Connect(function()
