@@ -45,14 +45,6 @@ local reload_settings = {
 	reload_delay = 0.1, -- s
 }
 
-local color = {
-	killaura = {
-		unable_to_find_line_of_sight = color3(255, 50, 50),
-		found_line_of_sight_and_firing = color3(50, 255, 50),
-		no_result_was_found = color3(100, 100, 100),
-	},
-}
-
 local transparency = {
 	killaura = {
 		idfk = 0.5,
@@ -207,6 +199,14 @@ local game_event = {
 	reload_action = game_instance.events.WeaponReloadEvent,
 	menu = game_instance.events.MenuEvent,
 	tool = game_instance.events.ToolsEvent,
+}
+
+local color = {
+	killaura = {
+		unable_to_find_line_of_sight = color3(255, 50, 50),
+		found_line_of_sight_and_firing = color3(50, 255, 50),
+		no_result_was_found = color3(100, 100, 100),
+	},
 }
 
 local player_data = local_player.PlayerData
@@ -782,7 +782,6 @@ renderstepped:Connect(function()
 	debug_profileend()
 end)
 
-note:Fire("success", "ran successfully", 5)
 
 local window = ui.library:CreateWindow({
 	Title = "Harpmod 2",
@@ -978,3 +977,6 @@ end)
 toggle.killaura_spatial_partitioning:OnChanged(function()
 	killaura_settings.cell.always_scanning = toggle.killaura_spatial_partitioning.Value
 end)
+
+
+note:Fire("success", "ran successfully", 5)
