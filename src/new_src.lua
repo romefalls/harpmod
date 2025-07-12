@@ -532,44 +532,42 @@ local killaura_func = {
 	end,
 	get_nearby_cell_targets = function()
 		debug_profilebegin("harpmod.killaura_func.get_nearby_cell_targets")
-		task.spawn(function()
-			local my_char = local_player.Character
-			if not my_char then
-				return {}
-			end
-			local my_hrp = find_first_child_and_class_check(my_char, "HumanoidRootPart", "BasePart")
-			if not my_hrp then
-				return {}
-			end
-			local targets = {}
-			for _, player in next, get_players(svc.players) do
-				if
-					player ~= local_player
-					and player.Character
-					and find_first_child_and_class_check(player.Character, "HumanoidRootPart", "BasePart")
-				then
-					if killaura_whitelist[player.Name] then
-						continue
-					end
-					local name_key = get_player_name_key(player)
-					local is_allowed_color = killaura_settings.target[name_key .. "_names"]
-					if not is_allowed_color then
-						continue
-					end
-					if #killaura_blacklist > 0 and not table_find(killaura_blacklist, player.Name) then
-						continue
-					end
-					local enemy_hrp = player.Character.HumanoidRootPart
-					local distance = (enemy_hrp.Position - my_hrp.Position).Magnitude
+		local my_char = local_player.Character
+		if not my_char then
+			return {}
+		end
+		local my_hrp = find_first_child_and_class_check(my_char, "HumanoidRootPart", "BasePart")
+		if not my_hrp then
+			return {}
+		end
+		local targets = {}
+		for _, player in next, get_players(svc.players) do
+			if
+				player ~= local_player
+				and player.Character
+				and find_first_child_and_class_check(player.Character, "HumanoidRootPart", "BasePart")
+			then
+				if killaura_whitelist[player.Name] then
+					continue
+				end
+				local name_key = get_player_name_key(player)
+				local is_allowed_color = killaura_settings.target[name_key .. "_names"]
+				if not is_allowed_color then
+					continue
+				end
+				if #killaura_blacklist > 0 and not table_find(killaura_blacklist, player.Name) then
+					continue
+				end
+				local enemy_hrp = player.Character.HumanoidRootPart
+				local distance = (enemy_hrp.Position - my_hrp.Position).Magnitude
 
-					if distance < killaura_settings.radius then
-						table_insert(targets, { player = player, part = enemy_hrp })
-					end
+				if distance < killaura_settings.radius then
+					table_insert(targets, { player = player, part = enemy_hrp })
 				end
 			end
-			return targets
-		end)
+		end
 		debug_profileend()
+		return targets
 	end,
 }
 
