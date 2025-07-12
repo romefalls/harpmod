@@ -1,10 +1,4 @@
 --[[
-
-note:
-you arent supposed to autorun this script
-i removed a LOT of waitforchilds
-
-
 :troll:
 5459982119,7485988593,7141616809,6216526940,5644827120,4899180116,7391765296,7488505563,7044363720 -- fur?
 5994725824,5999900363,5833333796,4995609156,5891839311,5699732631,5918270333 --deleted?
@@ -12,6 +6,7 @@ i removed a LOT of waitforchilds
 7145824116,7145825706,9323462320,11676800530,12581448928,12669543527,13002675302,13479814214,13794250687,14067973844,14124935972 --zaak
 17814441976,109552074033966,18613673779,135872614955430,128593425863840,76612888997160,126205541378879,13206455309,120589223050335,15729409885,11788143966,12965267930,136945645973532,136573284940700,114875031523165
 ]]
+
 local ui = {
 	repo = "https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/",
 	library = loadstring(
@@ -28,7 +23,7 @@ local ui = {
 local profiling_enabled = true
 
 local task_spawn = task.spawn
---local _task_wait = task.wait -- selene can you shut up already thank you
+local _task_wait = task.wait
 local table_insert = table.insert
 local table_find = table.find
 
@@ -154,6 +149,8 @@ local wait_for_child = function(parent, instance)
 	return nil
 end
 
+local local_player = ins_get(svc.players, "LocalPlayer")
+
 local game_instance = {
 	events = svc.rs.Events,
 }
@@ -164,11 +161,6 @@ local game_event = {
 	menu = game_instance.events.MenuEvent,
 	tool = game_instance.events.ToolsEvent,
 }
-
-local local_player = ins_get(svc.players, "LocalPlayer")
-
-local player_data = local_player.PlayerData
-local note = game.ReplicatedStorage.Events.Note
 
 local rage = {
 	killaura = true,
@@ -183,6 +175,9 @@ local legit = {
 	autobuy = true,
 	max_hunger = true,
 }
+
+local player_data = local_player.PlayerData
+local note = game_instance.events.Note
 
 local tsi = {
 	exponentiate_out = function(t)
@@ -490,7 +485,7 @@ local modify_gun = function(old_gun, new_gun_name, ammo_type, gun_sound)
 	if rage.auto_modder ~= true then
 		note:Fire("mod " .. old_gun, "Make sure to have your " .. old_gun .. " unequipped", 5)
 	end
-	local gun = wait_for_child(local_player.Backpack,old_gun)
+	local gun = wait_for_child(local_player.Backpack, old_gun)
 	gun.LocalScript:Destroy()
 	require(svc.rs.Modules.TS[(false and "ANS") or "GNS"]).Initiate(
 		gun,
@@ -629,7 +624,7 @@ local on_render_stepped = {
 	killaura = function()
 		if rage.killaura == true then
 			debug_profilebegin("harpmod.on_render_stepped.killaura")
-			local get_pos = wait_for_child(local_player.Character,"HumanoidRootPart").CFrame.Position
+			local get_pos = wait_for_child(local_player.Character, "HumanoidRootPart").CFrame.Position
 
 			local current_cell = killaura_func.get_current_cell()
 			if current_cell ~= killaura_settings.cell.last_cell then
@@ -657,7 +652,7 @@ local on_render_stepped = {
 							end
 							local target = targets[killaura_settings.last_target_index]
 							local pos = target.part.Position
-							local hum = wait_for_child(target.part.Parent,"Humanoid")
+							local hum = wait_for_child(target.part.Parent, "Humanoid")
 							if cast_ray(get_pos, pos) then
 								shoot_gun(pos.X, pos.Y, pos.Z, hum)
 								break
@@ -734,7 +729,7 @@ local on_render_stepped = {
 }
 
 for _, ammo_name in next, ammo_type do
-	local ammo_stat = wait_for_child(player_data,ammo_name)
+	local ammo_stat = wait_for_child(player_data, ammo_name)
 	connect(get_property_changed_signal(ammo_stat, "Value"), function()
 		if legit.autobuy == true then
 			debug_profilebegin("harpmod.auto_buy")
