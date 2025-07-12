@@ -69,7 +69,7 @@ local color = {
 	killaura = {
 		unable_to_find_line_of_sight = color3(255, 50, 50),
 		found_line_of_sight_and_firing = color3(50, 255, 50),
-		no_humanoid_root_part_found = color3(100, 100, 100),
+		no_result_was_found = color3(100, 100, 100),
 	},
 }
 
@@ -406,16 +406,16 @@ local cast_ray = function(origin, final)
 
 		local distance_to_target = (hit_pos - final).Magnitude
 		if distance_to_target < 2 then
-			draw_ray_line(origin, hit_pos, color3(50, 255, 50))
+			draw_ray_line(origin, hit_pos, color.killaura.found_line_of_sight_and_firing)
 			debug_profileend()
 			return true
 		else
-			draw_ray_line(origin, hit_pos, color3(255, 50, 50), 0.6)
+			draw_ray_line(origin, hit_pos, color.killaura.unable_to_find_line_of_sight, 0.6)
 			debug_profileend()
 			return false
 		end
 	else
-		draw_ray_line(origin, origin + direction, color3(100, 100, 100))
+		draw_ray_line(origin, origin + direction, color.killaura.no_result_was_found)
 		debug_profileend()
 		return false
 	end
@@ -869,7 +869,7 @@ local toggle = {
 	profiling_on = groupbox.main.debug:AddToggle("microprofiler_labels_on", {
 		Text = "Profiling",
 		Default = profiling_enabled,
-		Tooltip = "Starts profiling for a MicroProfiler label. Disable if you don't know what that means.",
+		Tooltip = "Toggles label profiling for use in MicroProfiler. Disable if you don't know what that means.",
 	}),
 	aimbot_on = groupbox.rage.toggles:AddToggle("aimbot_on", {
 		Text = "Aimbot",
