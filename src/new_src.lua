@@ -80,7 +80,11 @@ local game = game
 
 local math_random = math.random
 local math_ceil = math.ceil
+local math_floor = math.floor
+local math_abs = math.abs
 local string_char = string.char
+
+local v3int16 = Vector3int16
 
 local profile_begin = debug.profilebegin
 local profile_end = debug.profileend
@@ -103,10 +107,6 @@ local color3 = Color3.fromRGB
 local cframe = CFrame.new
 local enum = Enum
 local raycast_params = RaycastParams.new
-
-
-
-
 
 local tracked_items = {}
 
@@ -513,6 +513,14 @@ local is_gun = function(tool)
 	return true
 end
 
+local get_position_cell = function(pos)
+	return v3int16.new(
+		math_floor(pos.X / killaura_settings.cell.size),
+		math_floor(pos.Y / killaura_settings.cell.size),
+		math_floor(pos.Z / killaura_settings.cell.size)
+	)
+end
+
 local modify_gun = function(old_gun, new_gun_name, ammo_type, gun_sound, spread, fire_rate, anim_type)
 	if rage.auto_modder ~= true then
 		note:Fire("mod " .. old_gun, "Make sure to have your " .. old_gun .. " unequipped", 5)
@@ -554,29 +562,46 @@ local killaura_func = {
 		if not my_hrp then
 			return {}
 		end
+		local my_cell = get_position_cell(my_hrp.Position)
 		local targets = {}
 		for _, player in next, get_players(svc.players) do
 			debug_profilebegin("player_" .. player.Name)
-			if player ~= local_player and player.Character and wait_for_child(player.Character, "HumanoidRootPart") then
-				if killaura_whitelist[player.Name] then
-					continue
-				end
-				debug_profilebegin("player_" .. player.Name .. " checks")
-				local name_key = get_player_name_key(player)
-				local is_allowed_color = killaura_settings.target[name_key .. "_names"]
-				if not is_allowed_color then
-					continue
-				end
-				if #killaura_blacklist > 0 and not table_find(killaura_blacklist, player.Name) then
-					continue
-				end
-				local enemy_hrp = player.Character.HumanoidRootPart
-				local distance = (enemy_hrp.Position - my_hrp.Position).Magnitude
-
-				if distance < killaura_settings.radius then
-					table_insert(targets, { player = player, part = enemy_hrp })
-				end
+			if player == local_player or not player.Character then
 				debug_profileend()
+				continue
+			end
+			local hrp = wait_for_child(player.Character,"HumanoidRootPart")
+			if not hrp then
+				debug_profileend()
+				continue
+			end
+			local their_cell = get_position_cell(hrp.Position)
+			local dx = math_abs(my_cell.X - their_cell.X)
+			local dy = math_abs(my_cell.Y - their_cell.Y)
+			local dz = math_abs(my_cell.Z - their_cell.Z)
+			local max_cell_distance = math_ceil(killaura_settings.radius / killaura_settings.cell.size)
+			if dx > max_cell_distance or dy > max_cell_distance or dz > max_cell_distance then
+				debug_profileend()
+				continue
+			end
+			if killaura_whitelist[player.Name] then
+				debug_profileend()
+				continue
+			end
+			debug_profilebegin("player_" .. player.Name .. "_checks")
+			local name_key = get_player_name_key(player)
+			local is_allowed_color = killaura_settings.target[name_key .. "_names"]
+			if not is_allowed_color then
+				debug_profileend()
+				continue
+			end
+			if #killaura_blacklist > 0 and not table_find(killaura_blacklist, player.Name) then
+				debug_profileend()
+				continue
+			end
+			local dist = (hrp.Position - my_hrp.Position).Magnitude
+			if dist < killaura_settings.radius then
+				table_insert(targets, { player = player, part = hrp })
 			end
 			debug_profileend()
 		end
@@ -610,7 +635,6 @@ local _swing_melee = function(target_player)
 	}
 	game_event.menu_action:FireServer(unpack(args))
 end
-
 
 local reload_gun = function(amount)
 	local now = tick()
@@ -782,7 +806,6 @@ renderstepped:Connect(function()
 	debug_profileend()
 end)
 
-
 local window = ui.library:CreateWindow({
 	Title = "Harpmod 2",
 	Center = true,
@@ -799,9 +822,7 @@ local tab = {
 	gun_modder = window:AddTab("Gun Modder"),
 }
 
-local gun_modder_stats = {
-
-}
+local gun_modder_stats = {}
 
 local groupbox = {
 	main = {
@@ -985,6 +1006,5 @@ end)
 toggle.killaura_spatial_partitioning:OnChanged(function()
 	killaura_settings.cell.always_scanning = toggle.killaura_spatial_partitioning.Value
 end)
-
 
 note:Fire("success", "ran successfully", 5)
