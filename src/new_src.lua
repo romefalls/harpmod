@@ -820,7 +820,7 @@ local slider = {
 			Text = "Range",
 			Default = killaura_settings.radius,
 			Min = 1,
-			Max = 225,
+			Max = 250,
 			Rounding = 1,
 			Compact = false,
 		}),
