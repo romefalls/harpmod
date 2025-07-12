@@ -79,7 +79,7 @@ end
 
 local get_metamethod_from_error_stack = function(userdata, f, test) --[[
 		full disclosure:
-		i dont know what the freak this does
+		i dont know what the fuck this does
 		this is probably elite roblox knowledge,
 		for those uninitiated, this is like reading c after thousands of years of using lua
 	]]
@@ -93,7 +93,7 @@ local get_metamethod_from_error_stack = function(userdata, f, test) --[[
 	return ret
 end
 
-local ins_get = get_metamethod_from_error_stack(game, function(a, b) -- problem here
+local ins_get = get_metamethod_from_error_stack(game, function(a, b) 
 	return a[b]
 end, function(f)
 	local a = Instance.new("Folder")
@@ -574,9 +574,9 @@ end
 
 local _swing_melee = function(target_player)
 	local args = {
-		34,
-		workspace:FindFirstChild(target_player):WaitForChild("Humanoid"),
-		workspace:FindFirstChild(target_player):WaitForChild("HumanoidRootPart").CFrame,
+		34, --opcode
+		workspace:FindFirstChild(target_player):WaitForChild("Humanoid"), --unlucky guy's health
+		workspace:FindFirstChild(target_player):WaitForChild("HumanoidRootPart").CFrame, -- unlucky guy's position
 	}
 	game_event.menu_action:FireServer(unpack(args))
 end
