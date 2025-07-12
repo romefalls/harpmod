@@ -513,26 +513,26 @@ local is_gun = function(tool)
 	return true
 end
 
-local modify_gun = function(old_gun, new_gun_name, ammo_type, gun_sound)
+local modify_gun = function(old_gun, new_gun_name, ammo_type, gun_sound, spread, fire_rate, anim_type)
 	if rage.auto_modder ~= true then
 		note:Fire("mod " .. old_gun, "Make sure to have your " .. old_gun .. " unequipped", 5)
 	end
 	local gun = wait_for_child(local_player.Backpack, old_gun)
 	gun.LocalScript:Destroy()
 	require(svc.rs.Modules.TS[(false and "ANS") or "GNS"]).Initiate(
-		gun,
-		2.2,
-		100,
-		0,
-		100,
-		0,
-		gun_sound,
-		4,
-		nil,
-		ammo_type,
-		1,
-		2,
-		2
+		gun, -- old gun
+		2.2, -- idfk
+		100, -- max ammo
+		fire_rate or 0, -- firerate
+		100, -- damage
+		spread or 0, -- spread
+		gun_sound or 4, -- gun sound
+		anim_type or 1, -- animation type
+		nil, -- idfk
+		ammo_type, -- ammo type
+		1, -- idfk
+		2, -- idfk
+		2 -- IDFK
 	)
 	gun.Name = new_gun_name
 	if rage.auto_modder ~= true then -- whatever
@@ -799,6 +799,10 @@ local tab = {
 	gun_modder = window:AddTab("Gun Modder"),
 }
 
+local gun_modder_stats = {
+
+}
+
 local groupbox = {
 	main = {
 		debug = tab.main:AddLeftGroupbox("Debugging"),
@@ -811,6 +815,10 @@ local groupbox = {
 	},
 	rage = {
 		toggles = tab.killaura:AddLeftGroupbox("Misc"),
+	},
+	modder = {
+		stat_maker = tab.gun_modder:AddLeftGroupbox("Stats"),
+		processor = tab.gun_modder:AddRightGroupbox("Name & Build"),
 	},
 }
 local slider = {
