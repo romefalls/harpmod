@@ -145,6 +145,15 @@ local find_first_child_and_class_check = function(parent, instance, class) -- is
 	return nil
 end
 
+local wait_for_child = function(parent, instance)
+	for _, v in next, get_children(parent) do
+		if ins_get(v, "Name") == instance then
+			return v
+		end
+	end
+	return nil
+end
+
 local game_instance = {
 	events = svc.rs.Events,
 }
@@ -536,17 +545,13 @@ local killaura_func = {
 		if not my_char then
 			return {}
 		end
-		local my_hrp = find_first_child_and_class_check(my_char, "HumanoidRootPart", "BasePart")
+		local my_hrp = wait_for_child(my_char, "HumanoidRootPart")
 		if not my_hrp then
 			return {}
 		end
 		local targets = {}
 		for _, player in next, get_players(svc.players) do
-			if
-				player ~= local_player
-				and player.Character
-				and find_first_child_and_class_check(player.Character, "HumanoidRootPart", "BasePart")
-			then
+			if player ~= local_player and player.Character and wait_for_child(player.Character, "HumanoidRootPart") then
 				if killaura_whitelist[player.Name] then
 					continue
 				end
