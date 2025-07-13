@@ -1,4 +1,4 @@
-                          local GunToMod = "Lever Action"
+                          local GunToMod = "M4"
                             local NewGunName = "Hi nigga let's go band 4 band"
                             local AmmoType = "Rifle"
                             local MaxAmmo = 7

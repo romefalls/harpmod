@@ -104,9 +104,10 @@ end
 local instance = Instance.new
 local vector3 = Vector3.new
 local color3 = Color3.fromRGB
-local cframe = CFrame.new
 local enum = Enum
 local raycast_params = RaycastParams.new
+local v2 = Vector2.new
+local angles = CFrame.fromEulerAngles --faster than .Angles
 
 local tracked_items = {}
 
@@ -169,6 +170,27 @@ local heartbeat = ins_get(svc.run, "Heartbeat")
 local connect = heartbeat.Connect
 local get_property_changed_signal = ins_get(game, "GetPropertyChangedSignal")
 local get_children = ins_get(game, "GetChildren")
+
+local cf_get = get_metamethod_from_error_stack(cf_0, function(a, b)
+	return a[b]
+end, function(f)
+	return f(cframe(1, 2, 3), "Position") == vector3(1, 2, 3)
+end)
+local cf_mul = get_metamethod_from_error_stack(cf_0, function(a, b)
+	return a * b
+end, function(f)
+	return angles(1, 2, 3) * angles(1, 2, 3) == f(angles(1, 2, 3), angles(1, 2, 3))
+end)
+local cf_add = get_metamethod_from_error_stack(cf_0, function(a, b)
+	return a + b
+end, function(f)
+	return cframe(1, 2, 3) + vector3(1, 2, 3) == f(cframe(1, 2, 3), vector3(1, 2, 3))
+end)
+local v3_get = get_metamethod_from_error_stack(v3_0, function(a, b)
+	return a[b]
+end, function(f)
+	return vector3(1, 2, 3).Unit == f(vector3(1, 2, 3), "Unit")
+end)
 
 local find_first_child_and_class_check = function(parent, instance, class) -- isnt this just findfirstchildofclass?
 	for _, v in next, get_children(parent) do
@@ -570,7 +592,7 @@ local killaura_func = {
 				debug_profileend()
 				continue
 			end
-			local hrp = wait_for_child(player.Character,"HumanoidRootPart")
+			local hrp = wait_for_child(player.Character, "HumanoidRootPart")
 			if not hrp then
 				debug_profileend()
 				continue
