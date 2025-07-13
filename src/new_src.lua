@@ -108,6 +108,7 @@ local enum = Enum
 local raycast_params = RaycastParams.new
 local v2 = Vector2.new
 local angles = CFrame.fromEulerAngles --faster than .Angles
+local cframe = CFrame.new
 
 local tracked_items = {}
 
@@ -170,6 +171,7 @@ local heartbeat = ins_get(svc.run, "Heartbeat")
 local connect = heartbeat.Connect
 local get_property_changed_signal = ins_get(game, "GetPropertyChangedSignal")
 local get_children = ins_get(game, "GetChildren")
+local tween_create = svc.tween.Create
 
 local cf_get = get_metamethod_from_error_stack(cf_0, function(a, b)
 	return a[b]
@@ -372,7 +374,7 @@ local debug = {
 }
 
 local tween = function(i, t, p)
-	return svc.tween:Create(i, t, p):Play()
+	tween_create(svc.tween, i, t, p):Play()
 end
 
 local track_character = function(character)
@@ -676,7 +678,7 @@ local on_render_stepped = {
 	killaura = function()
 		if rage.killaura == true then
 			debug_profilebegin("harpmod.on_render_stepped.killaura")
-			local get_pos = wait_for_child(local_player.Character, "HumanoidRootPart").CFrame.Position
+			local get_pos = cf_get(wait_for_child(local_player.Character, "HumanoidRootPart").CFrame, "Position")
 
 			local current_cell = killaura_func.get_current_cell()
 			if current_cell ~= killaura_settings.cell.last_cell then
@@ -707,6 +709,7 @@ local on_render_stepped = {
 							local hum = wait_for_child(target.part.Parent, "Humanoid")
 							if cast_ray(get_pos, pos) then
 								shoot_gun(pos.X, pos.Y, pos.Z, hum)
+								debug_profileend()
 								break
 							end
 						end
@@ -722,13 +725,14 @@ local on_render_stepped = {
 						for z = -range, range do
 							local offset = vector3(x, y, z)
 							local cell = current_cell + offset
-							local center_pos = (cell * killaura_settings.cell.size)
-								+ vector3( -- apparently using * and + operators on vector3s are faster than /?
+							local center_pos = cf_add(
+								cf_mul(cell, killaura_settings.cell.size),
+								vector3(
 									killaura_settings.cell.size * 0.5,
 									killaura_settings.cell.size * 0.5,
 									killaura_settings.cell.size * 0.5
 								)
-
+							)
 							if (center_pos - get_pos).Magnitude <= killaura_settings.radius then
 								debug.killaura.draw_cells(cell, color3(0, 255, 0))
 							end
