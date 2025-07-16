@@ -34,6 +34,10 @@ local killaura_settings = {
 		red_names = true,
 		govt_workers = false,
 	},
+	ray_beam = {
+		enabled = true,
+		animated = true,
+	},
 	radius = 200,
 	last_kill_time = 0,
 	shoot_delay = 0.045,
@@ -77,7 +81,7 @@ local xpcall = xpcall
 local type = type
 local typeof = typeof
 local game = game
-
+local tick = tick -- oh my god
 local math_random = math.random
 local math_ceil = math.ceil
 local math_floor = math.floor
@@ -412,6 +416,7 @@ for _, player in next, get_players(svc.players) do
 end
 
 local draw_ray_line = function(origin, final, color, transparency)
+	if not killaura_settings.ray_beam.enabled then return end
 	debug_profilebegin("harpmod.draw_ray_line")
 	coroutine.wrap(function()
 		local ray_part = instance("Part")
@@ -430,7 +435,9 @@ local draw_ray_line = function(origin, final, color, transparency)
 		ray_part.Size = vector3(0.1, 0.1, distance)
 		ray_part.CFrame = cframe(mid_point, final)
 		ray_part.Parent = workspace
+		if killaura_settings.ray_beam.animated then
 		tween(ray_part, tsi.sine_inout(0.5), { Transparency = 1, Size = vector3(0, 0, distance) })
+		end
 		task.wait(0.5)
 		ray_part:Destroy()
 	end)()
@@ -859,6 +866,7 @@ local groupbox = {
 		sliders = tab.killaura:AddRightGroupbox("Sliders"),
 		toggles = tab.killaura:AddLeftGroupbox("Toggles"),
 		dropdowns = tab.killaura:AddRightGroupbox("Targets"),
+		visuals = tab.killaura:AddLeftGroupbox("Visuals"),
 	},
 	rage = {
 		toggles = tab.killaura:AddLeftGroupbox("Misc"),
@@ -882,7 +890,7 @@ local slider = {
 			Text = "Speed",
 			Default = killaura_settings.shoot_delay,
 			Min = 0,
-			Max = 5,
+			Max = 1,
 			Rounding = 5,
 			Compact = false,
 		}),
@@ -951,6 +959,16 @@ local toggle = {
 		Default = killaura_settings.cell.always_scanning,
 		Tooltip = "If set to 'off', killaura will only scan when camera enters a new cell.",
 	}),
+	killaura_ray_beam_on = groupbox.killaura.visuals:AddToggle("killaura_ray_beam_enabled",{
+		Text = "Raycast Beam",
+		Default = killaura_settings.ray_beam.enabled,
+		Tooltip = "Adds a visual tracer of where your targets are. Disable to improve performance."
+	}),
+	killaura_ray_beam_animated = groupbox.killaura.visuals:AddToggle("killaura_ray_beam_animated",{
+		Text = "Animated",
+		Default = killaura_settings.ray_beam.animated,
+		Tooltip = "Animates the visual tracer. Disable to improve performance."
+	}),
 	killaura_target = { --[[
 		since linoria weird and i lazy, ill do it like this:
 	]]
@@ -976,6 +994,12 @@ local toggle = {
 		}),
 	},
 }
+toggle.killaura_ray_beam_on:OnChanged(function()
+	killaura_settings.ray_beam.enabled = toggle.killaura_ray_beam_on.Value
+end)
+toggle.killaura_ray_beam_animated:OnChanged(function()
+	killaura_settings.ray_beam.animated = toggle.killaura_ray_beam_animated.Value
+end)
 
 toggle.profiling_on:OnChanged(function()
 	profiling_enabled = toggle.profiling_on.Value
