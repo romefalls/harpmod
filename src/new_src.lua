@@ -55,6 +55,12 @@ local transparency = {
 	},
 }
 
+local bounty = {
+	target = nil,
+	target_silently = false,
+	max_price = 1000,
+}
+
 local ui = {
 	repo = "https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/",
 	library = loadstring(
@@ -416,7 +422,9 @@ for _, player in next, get_players(svc.players) do
 end
 
 local draw_ray_line = function(origin, final, color, transparency)
-	if not killaura_settings.ray_beam.enabled then return end
+	if not killaura_settings.ray_beam.enabled then
+		return
+	end
 	debug_profilebegin("harpmod.draw_ray_line")
 	coroutine.wrap(function()
 		local ray_part = instance("Part")
@@ -436,7 +444,7 @@ local draw_ray_line = function(origin, final, color, transparency)
 		ray_part.CFrame = cframe(mid_point, final)
 		ray_part.Parent = workspace
 		if killaura_settings.ray_beam.animated then
-		tween(ray_part, tsi.sine_inout(0.5), { Transparency = 1, Size = vector3(0, 0, distance) })
+			tween(ray_part, tsi.sine_inout(0.5), { Transparency = 1, Size = vector3(0, 0, distance) })
 		end
 		task.wait(0.5)
 		ray_part:Destroy()
@@ -550,6 +558,26 @@ local get_position_cell = function(pos)
 		math_floor(pos.Y / killaura_settings.cell.size),
 		math_floor(pos.Z / killaura_settings.cell.size)
 	)
+end
+
+local target_bounty = function()
+	for _, v in get_players(svc.players) do
+		if v == wait_for_child(svc.players, bounty.target) then
+			if bounty.silent_target then
+				return
+			end
+		end
+		if v.TargetBounty.HirePrice.Value <= bounty.max_price then
+			local args = {
+				15,
+				v,
+				game:GetService("Players"):WaitForChild(target),
+			}
+			game_event.menu_action.FireServer(unpack(args))
+		else
+			warn("price was too large, expected ", max_price, " or less, got " .. v.TargetBounty.HirePrice.Value)
+		end
+	end
 end
 
 local modify_gun = function(old_gun, new_gun_name, ammo_type, gun_sound, spread, fire_rate, anim_type)
@@ -850,6 +878,7 @@ local window = ui.library:CreateWindow({
 local tab = {
 	main = window:AddTab("Main"),
 	killaura = window:AddTab("Killaura"),
+	bounty_targeter = window:AddTab("Bounty Targeter"),
 	rage = window:AddTab("Rage"),
 	legit = window:AddTab("Legit"),
 	gun_modder = window:AddTab("Gun Modder"),
@@ -870,6 +899,10 @@ local groupbox = {
 	},
 	rage = {
 		toggles = tab.killaura:AddLeftGroupbox("Misc"),
+	},
+	bounty_targeter = {
+		stats = tab.bounty_targeter:AddLeftGroupbox("Stats"),
+		target = tab.bounty_targeter:AddRightGroupbox("Target"),
 	},
 	modder = {
 		stat_maker = tab.gun_modder:AddLeftGroupbox("Stats"),
@@ -895,6 +928,17 @@ local slider = {
 			Compact = false,
 		}),
 	},
+	bounty_targeter = {
+		max_price = groupbox.bounty_targeter.stats:AddSlider("max_price",{
+			Text = "Max Price",
+			Default = bounty.max_price,
+			Min = 1000,
+			Max = 30000,
+			Rounding = 1,
+			Compact = false,
+			Tooltip = "Will not hire people if their bounty price is set above this threshold.",
+		}),
+	},
 }
 local dropdown = {
 	killaura_player_whitelist = groupbox.killaura.dropdowns:AddDropdown("player_whitelist", {
@@ -908,6 +952,11 @@ local dropdown = {
 		Text = "Blacklist",
 		Tooltip = "Killaura will target these players regardless of their name color",
 		Multi = true,
+	}),
+	bounty_target = groupbox.bounty_targeter.target:AddDropdown("player_target",{
+		SpecialType = "Player",
+		Text = "Target",
+		Tooltip = "Set the player to be targeted."
 	}),
 }
 --[[
@@ -934,6 +983,11 @@ local toggle = {
 		Default = profiling_enabled,
 		Tooltip = "Toggles label profiling for use in MicroProfiler. Disable if you don't know what that means.",
 	}),
+	bounty_targeter_silent_target = groupbox.bounty_targeter.stats:AddToggle("bounty_targeter_silent_target",{
+		Text = "Silent Target",
+		Default = bounty.silent_target,
+		Tooltip = "Will not hire the target themselves.",
+	}),
 	aimbot_on = groupbox.rage.toggles:AddToggle("aimbot_on", {
 		Text = "Aimbot",
 		Default = rage.aimbot,
@@ -943,7 +997,7 @@ local toggle = {
 		Text = "Auto Reload",
 		Default = rage.auto_reload,
 		Tooltip = "Auto Reload will reload any gun that you hold instantly.",
-	}),
+	}), -- un PargbmGagoK7I($Vt4$Ohj@V7YS5X8%B HI_b61eb75b-668a-4463-9580-b472bacbd749 	
 	auto_modder = groupbox.rage.toggles:AddToggle("auto_modder_on", {
 		Text = "Auto Modder",
 		Default = rage.auto_modder,
@@ -959,15 +1013,15 @@ local toggle = {
 		Default = killaura_settings.cell.always_scanning,
 		Tooltip = "If set to 'off', killaura will only scan when camera enters a new cell.",
 	}),
-	killaura_ray_beam_on = groupbox.killaura.visuals:AddToggle("killaura_ray_beam_enabled",{
+	killaura_ray_beam_on = groupbox.killaura.visuals:AddToggle("killaura_ray_beam_enabled", {
 		Text = "Raycast Beam",
 		Default = killaura_settings.ray_beam.enabled,
-		Tooltip = "Adds a visual tracer of where your targets are. Disable to improve performance."
+		Tooltip = "Adds a visual tracer of where your targets are. Disable to improve performance.",
 	}),
-	killaura_ray_beam_animated = groupbox.killaura.visuals:AddToggle("killaura_ray_beam_animated",{
+	killaura_ray_beam_animated = groupbox.killaura.visuals:AddToggle("killaura_ray_beam_animated", {
 		Text = "Animated",
 		Default = killaura_settings.ray_beam.animated,
-		Tooltip = "Animates the visual tracer. Disable to improve performance."
+		Tooltip = "Animates the visual tracer. Disable to improve performance.",
 	}),
 	killaura_target = { --[[
 		since linoria weird and i lazy, ill do it like this:
@@ -1025,6 +1079,10 @@ slider.killaura.speed:OnChanged(function()
 	killaura_settings.shoot_delay = slider.killaura.speed.Value
 end)
 
+slider.bounty_targeter.max_price:OnChanged(function()
+	bounty.max_price = slider.bounty_targeter.max_price.Value
+end)
+
 toggle.killaura_target.name_white:OnChanged(function()
 	killaura_settings.target.white_names = toggle.killaura_target.name_white.Value
 end)
@@ -1055,6 +1113,10 @@ end)
 
 toggle.killaura_spatial_partitioning:OnChanged(function()
 	killaura_settings.cell.always_scanning = toggle.killaura_spatial_partitioning.Value
+end)
+
+toggle.bounty_targeter_silent_target:OnChanged(function()
+	bounty.silent_target = toggle.bounty_targeter_silent_target.Value
 end)
 
 note:Fire("success", "ran successfully", 5)

@@ -1,10 +1,10 @@
-local GunToMod = "AK"
+local GunToMod = "G36"
 local NewGunName = "Hi nigga let's go band 4 band"
 local AmmoType = "Rifle"
 local MaxAmmo = 7
 local FireRate = 0
 local Spread = 0
-local GunSound = 25
+local GunSound = 5
 local Gun = game:GetService("Players").LocalPlayer.Backpack:WaitForChild(GunToMod)
 Gun.LocalScript:Destroy()
 require(game:GetService("ReplicatedStorage").Modules.TS[(false and "ANS") or "GNS"]).Initiate(
@@ -15,7 +15,7 @@ require(game:GetService("ReplicatedStorage").Modules.TS[(false and "ANS") or "GN
 	35,
 	Spread,
 	GunSound,
-	4,
+	1,
 	nil,
 	AmmoType .. " Ammo",
 	1,
