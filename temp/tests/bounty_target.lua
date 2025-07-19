@@ -1,6 +1,6 @@
-local target = "snas_Kid101"
+local target = "ArchAwesome9"
 local max_price = 1000
-local silent_target = true -- will not alert the target that theyre being hunted, in other words won't give them the bounty popup
+local silent_target = false -- will not alert the target that theyre being hunted, in other words won't give them the bounty popup
 
 for _, v in game.Players:GetPlayers() do -- for each player (v), do this:
 	print("let's handle ", v )
