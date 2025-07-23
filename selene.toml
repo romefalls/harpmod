@@ -1,7 +1,3 @@
 std = "roblox"
 
 [lints]
-mixed_table = "allow"
-shadowing = "allow"
-undefined_variable = "allow"
-incorrect_standard_library_use = "allow"

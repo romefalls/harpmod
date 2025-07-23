@@ -7,6 +7,54 @@
 17814441976,109552074033966,18613673779,135872614955430,128593425863840,76612888997160,126205541378879,13206455309,120589223050335,15729409885,11788143966,12965267930,136945645973532,136573284940700,114875031523165
 ]]
 
+local rage = {
+	killaura = true,
+	aimbot = false,
+	auto_reload = true,
+	auto_modder = true,
+	auto_cola = true, -- for normal ones
+	cola_god = true, -- for mythic one
+}
+
+local legit = {
+	autobuy = true,
+	max_hunger = true,
+}
+
+local killaura_settings = {
+	target = {
+		white_names = false,
+		yellow_names = true,
+		red_names = true,
+		govt_workers = false, -- TODO: this is not a be all end all solution! Government workers can still be off duty.
+	},
+	ray_beam = {
+		enabled = true,
+		animated = true,
+	},
+	radius = 200,
+	last_kill_time = 0,
+	shoot_delay = 0.045,
+	last_target_index = 1,
+}
+
+local reload_settings = {
+	last_reload_time = 0,
+	reload_delay = 0.1, -- s
+}
+
+local transparency = {
+	killaura = {
+		idfk = 0.5,
+	},
+}
+
+local bounty = {
+	target = nil,
+	target_silently = false,
+	max_price = 1000,
+}
+
 local ui = {
 	repo = "https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/",
 	library = loadstring(
@@ -33,10 +81,16 @@ local xpcall = xpcall
 local type = type
 local typeof = typeof
 local game = game
-
+local tick = tick
 local math_random = math.random
+local math_clamp = math.clamp
 local math_ceil = math.ceil
+local math_floor = math.floor
+local math_abs = math.abs
+local math_lerp = math.lerp -- selene and/or the luau lsp don't know that math.lerp has existed for the past 5 months, why the fuck are you guys asleep?
 local string_char = string.char
+
+local v3int16 = Vector3int16
 
 local profile_begin = debug.profilebegin
 local profile_end = debug.profileend
@@ -56,23 +110,16 @@ end
 local instance = Instance.new
 local vector3 = Vector3.new
 local color3 = Color3.fromRGB
-local cframe = CFrame.new
 local enum = Enum
 local raycast_params = RaycastParams.new
+local v2 = Vector2.new
+local angles = CFrame.fromEulerAngles
+local cframe = CFrame.new
 
-local color = {
-	killaura = {
-		unable_to_find_line_of_sight = color3(255, 50, 50),
-		found_line_of_sight_and_firing = color3(50, 255, 50),
-		no_result_was_found = color3(100, 100, 100),
-	},
-}
+local tracked_items = {}
 
-local transparency = {
-	killaura = {
-		idfk = 0.5,
-	},
-}
+local killaura_whitelist = {}
+local killaura_blacklist = {}
 
 local random_string = function()
 	local s = ""
@@ -130,6 +177,31 @@ local heartbeat = ins_get(svc.run, "Heartbeat")
 local connect = heartbeat.Connect
 local get_property_changed_signal = ins_get(game, "GetPropertyChangedSignal")
 local get_children = ins_get(game, "GetChildren")
+local tween_create = svc.tween.Create
+
+local cf_get = get_metamethod_from_error_stack(cf_0, function(a, b)
+	return a[b]
+end, function(f)
+	return f(cframe(1, 2, 3), "Position") == vector3(1, 2, 3)
+end)
+local cf_mul = get_metamethod_from_error_stack(cf_0, function(a, b)
+	return a * b
+end, function(f)
+	return angles(1, 2, 3) * angles(1, 2, 3) == f(angles(1, 2, 3), angles(1, 2, 3))
+end)
+local cf_add = get_metamethod_from_error_stack(cf_0, function(a, b)
+	return a + b
+end, function(f)
+	return cframe(1, 2, 3) + vector3(1, 2, 3) == f(cframe(1, 2, 3), vector3(1, 2, 3))
+end)
+local v3_get = get_metamethod_from_error_stack(v3_0, function(a, b)
+	return a[b]
+end, function(f)
+	return vector3(1, 2, 3).Unit == f(vector3(1, 2, 3), "Unit")
+end)
+local v3_lerp = function(a, b, t)
+	return vector3(math_lerp(a.X, b.X, t), math_lerp(a.Y, b.Y, t), math_lerp(a.Z, b.Z, t))
+end
 
 local find_first_child_and_class_check = function(parent, instance, class) -- isnt this just findfirstchildofclass?
 	for _, v in next, get_children(parent) do
@@ -162,18 +234,12 @@ local game_event = {
 	tool = game_instance.events.ToolsEvent,
 }
 
-local rage = {
-	killaura = true,
-	aimbot = false,
-	auto_reload = true,
-	auto_modder = true,
-	auto_cola = true, -- for normal ones
-	cola_god = true, -- for mythic one
-}
-
-local legit = {
-	autobuy = true,
-	max_hunger = true,
+local color = {
+	killaura = {
+		unable_to_find_line_of_sight = color3(255, 50, 50),
+		found_line_of_sight_and_firing = color3(50, 255, 50),
+		no_result_was_found = color3(100, 100, 100),
+	},
 }
 
 local player_data = local_player.PlayerData
@@ -243,6 +309,7 @@ local gun = {
 
 local _melee = {
 	"Toilet Plunger",
+	"Wooden Sword", -- i need more
 }
 
 local default_modded_gun_properties = {
@@ -296,30 +363,9 @@ local modded_gun = setmetatable({}, {
 	end,
 })
 
-local debug = {
-	enabled = false,
-	killaura = {
-		draw_cells = function(cell_vec3, color)
-			local size = vector3(4, 4, 4)
-			local part = instance("Part")
-			part.Size = size
-			part.Anchored = true
-			part.CanCollide = false
-			part.CanQuery = false
-			part.Transparency = 0.93
-			part.Color = color or color3(0, 255, 0)
-			part.Position = (cell_vec3 * 4) + size / 2
-			part.Parent = workspace
-
-			svc.debris:AddItem(part, 1.5)
-		end,
-	},
-}
-
 local tween = function(i, t, p)
-	return svc.tween:Create(i, t, p):Play()
+	tween_create(svc.tween, i, t, p):Play()
 end
-local tracked_items = {}
 
 local track_character = function(character)
 	debug_profilebegin("harpmod.track_character")
@@ -356,6 +402,9 @@ for _, player in next, get_players(svc.players) do
 end
 
 local draw_ray_line = function(origin, final, color, transparency)
+	if not killaura_settings.ray_beam.enabled then
+		return
+	end
 	debug_profilebegin("harpmod.draw_ray_line")
 	coroutine.wrap(function()
 		local ray_part = instance("Part")
@@ -374,8 +423,28 @@ local draw_ray_line = function(origin, final, color, transparency)
 		ray_part.Size = vector3(0.1, 0.1, distance)
 		ray_part.CFrame = cframe(mid_point, final)
 		ray_part.Parent = workspace
-		tween(ray_part, tsi.sine_inout(0.5), { Transparency = 1, Size = vector3(0, 0, distance) })
-		task.wait(0.5)
+
+		if killaura_settings.ray_beam.animated then
+			local duration = 0.5
+			local start_time = tick()
+			local size_start = ray_part.Size
+			local size_end = vector3(0, 0, distance)
+			local transparency_start = ray_part.Transparency
+			local transparency_end = 1
+			while true do
+				local now = tick()
+				local elapsed = now - start_time
+				local alpha = math_clamp(elapsed / duration, 0, 1)
+				ray_part.Size = v3_lerp(size_start, size_end, alpha)
+				ray_part.Transparency = transparency_start + (transparency_end - transparency_start) * alpha
+				if alpha >= 1 then
+					break
+				end
+				task.wait()
+			end
+		else
+			task.wait(0.5)
+		end
 		ray_part:Destroy()
 	end)()
 	debug_profileend()
@@ -388,11 +457,13 @@ local cast_ray = function(origin, final)
 	ray_params.FilterType = enum.RaycastFilterType.Exclude
 	ray_params.IgnoreWater = true
 	local direction = (final - origin)
+	debug_profilebegin("tracked_items")
 	for _, items in next, tracked_items do
 		for _, item in next, items do
 			table_insert(exclude, item)
 		end
 	end
+	debug_profileend()
 	ray_params.FilterDescendantsInstances = exclude
 	local result = raycast(svc.ws, origin, direction, ray_params)
 
@@ -446,8 +517,8 @@ local name_color = {
 
 local get_player_name_color = function(player)
 	local label = player.Character
-		and find_first_child_and_class_check(player.Character, "NameTag", "BillboardGui")
-		and find_first_child_and_class_check(player.Character.NameTag, "TextLabel", "TextLabel")
+		and player.Character:FindFirstChild("NameTag")
+		and player.Character:FindFirstChild("TextLabel")
 	return (label and label.TextColor3) or name_color.white
 end
 
@@ -481,26 +552,46 @@ local is_gun = function(tool)
 	return true
 end
 
-local modify_gun = function(old_gun, new_gun_name, ammo_type, gun_sound)
+local target_bounty = function()
+	for _, v in get_players(svc.players) do
+		if v == wait_for_child(svc.players, bounty.target) then
+			if bounty.silent_target then
+				return
+			end
+		end
+		if v.TargetBounty.HirePrice.Value <= bounty.max_price then
+			local args = {
+				15,
+				v,
+				game:GetService("Players"):WaitForChild(target),
+			}
+			game_event.menu_action.FireServer(unpack(args))
+		else
+			warn("price was too large, expected ", max_price, " or less, got " .. v.TargetBounty.HirePrice.Value)
+		end
+	end
+end
+
+local modify_gun = function(old_gun, new_gun_name, ammo_type, gun_sound, spread, fire_rate, anim_type)
 	if rage.auto_modder ~= true then
 		note:Fire("mod " .. old_gun, "Make sure to have your " .. old_gun .. " unequipped", 5)
 	end
 	local gun = wait_for_child(local_player.Backpack, old_gun)
 	gun.LocalScript:Destroy()
 	require(svc.rs.Modules.TS[(false and "ANS") or "GNS"]).Initiate(
-		gun,
-		2.2,
-		100,
-		0,
-		100,
-		0,
-		gun_sound,
-		4,
-		nil,
-		ammo_type,
-		1,
-		2,
-		2
+		gun, -- old gun
+		2.2, -- idfk
+		100, -- max ammo
+		fire_rate or 0, -- firerate
+		100, -- damage
+		spread or 0, -- spread
+		gun_sound or 4, -- gun sound
+		anim_type or 1, -- animation type
+		nil, -- idfk
+		ammo_type, -- ammo type
+		1, -- idfk
+		2, -- idfk
+		2 -- IDFK
 	)
 	gun.Name = new_gun_name
 	if rage.auto_modder ~= true then -- whatever
@@ -508,34 +599,10 @@ local modify_gun = function(old_gun, new_gun_name, ammo_type, gun_sound)
 	end
 end
 
-local killaura_settings = {
-	cell = {
-		size = 4,
-		last_cell = nil,
-		pending_update = true,
-		always_scanning = true,
-	},
-	target = {
-		white_names = false,
-		yellow_names = true,
-		red_names = true,
-		govt_workers = false,
-	},
-	radius = 200,
-	last_kill_time = 0,
-	shoot_delay = 0.045,
-	last_target_index = 1,
-}
-
-local killaura_whitelist = {}
-local killaura_blacklist = {}
-
 local killaura_func = {
-	get_current_cell = function()
-		return workspace.CurrentCamera.CFrame.Position // killaura_settings.cell.size
-	end,
-	get_nearby_cell_targets = function()
-		debug_profilebegin("harpmod.killaura_func.get_nearby_cell_targets")
+	get_nearby_targets = function()
+		debug_profilebegin("harpmod.killaura_func.get_nearby_targets")
+		debug_profilebegin("check local_char_and_hrp")
 		local my_char = local_player.Character
 		if not my_char then
 			return {}
@@ -544,29 +611,40 @@ local killaura_func = {
 		if not my_hrp then
 			return {}
 		end
+		debug_profileend()
 		local targets = {}
 		for _, player in next, get_players(svc.players) do
 			debug_profilebegin("player_" .. player.Name)
-			if player ~= local_player and player.Character and wait_for_child(player.Character, "HumanoidRootPart") then
-				if killaura_whitelist[player.Name] then
-					continue
-				end
-				debug_profilebegin("player_" .. player.Name .. " checks")
-				local name_key = get_player_name_key(player)
-				local is_allowed_color = killaura_settings.target[name_key .. "_names"]
-				if not is_allowed_color then
-					continue
-				end
-				if #killaura_blacklist > 0 and not table_find(killaura_blacklist, player.Name) then
-					continue
-				end
-				local enemy_hrp = player.Character.HumanoidRootPart
-				local distance = (enemy_hrp.Position - my_hrp.Position).Magnitude
-
-				if distance < killaura_settings.radius then
-					table_insert(targets, { player = player, part = enemy_hrp })
-				end
+			if player == local_player or not player.Character then
 				debug_profileend()
+				continue
+			end
+			debug_profilebegin("check target_player_hrp")
+			local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+			debug_profileend()
+			if not hrp then
+				debug_profileend()
+				continue
+			end
+			if killaura_whitelist[player.Name] then
+				debug_profileend()
+				continue
+			end
+			debug_profilebegin("check name")
+			local name_key = get_player_name_key(player)
+			local is_allowed_color = killaura_settings.target[name_key .. "_names"]
+			debug_profileend()
+			if not is_allowed_color then
+				debug_profileend()
+				continue
+			end
+			if #killaura_blacklist > 0 and not table_find(killaura_blacklist, player.Name) then
+				debug_profileend()
+				continue
+			end
+			local dist = (hrp.Position - my_hrp.Position).Magnitude
+			if dist < killaura_settings.radius then
+				table_insert(targets, { player = player, part = hrp })
 			end
 			debug_profileend()
 		end
@@ -601,11 +679,6 @@ local _swing_melee = function(target_player)
 	game_event.menu_action:FireServer(unpack(args))
 end
 
-local reload_settings = {
-	last_reload_time = 0,
-	reload_delay = 0.1, -- s
-}
-
 local reload_gun = function(amount)
 	local now = tick()
 	if now - reload_settings.last_reload_time < reload_settings.reload_delay then
@@ -624,25 +697,11 @@ local on_render_stepped = {
 	killaura = function()
 		if rage.killaura == true then
 			debug_profilebegin("harpmod.on_render_stepped.killaura")
-			local get_pos = wait_for_child(local_player.Character, "HumanoidRootPart").CFrame.Position
-
-			local current_cell = killaura_func.get_current_cell()
-			if current_cell ~= killaura_settings.cell.last_cell then
-				killaura_settings.cell.last_cell = current_cell
-				killaura_settings.cell.pending_update = true
-			end
-			if
-				killaura_settings.cell.pending_update
-				and tick() - killaura_settings.last_kill_time > killaura_settings.shoot_delay
-			then
-				if killaura_settings.cell.always_scanning == true then
-					killaura_settings.cell.pending_update = true -- setting this to true means that it will keep updating over and over again, functioning like a normal killaura
-				else
-					killaura_settings.cell.pending_update = false
-				end
+			local get_pos = cf_get(local_player.Character:FindFirstChild("HumanoidRootPart").CFrame, "Position")
+			if tick() - killaura_settings.last_kill_time > killaura_settings.shoot_delay then
 				killaura_settings.last_kill_time = tick()
 				task_spawn(function()
-					local targets = killaura_func.get_nearby_cell_targets()
+					local targets = killaura_func.get_nearby_targets()
 					if #targets > 0 then
 						local total_targets = #targets
 						for _ = 1, total_targets do
@@ -652,7 +711,7 @@ local on_render_stepped = {
 							end
 							local target = targets[killaura_settings.last_target_index]
 							local pos = target.part.Position
-							local hum = wait_for_child(target.part.Parent, "Humanoid")
+							local hum = target.part.Parent:FindFirstChild("Humanoid")
 							if cast_ray(get_pos, pos) then
 								shoot_gun(pos.X, pos.Y, pos.Z, hum)
 								break
@@ -660,30 +719,8 @@ local on_render_stepped = {
 						end
 					end
 				end)
-				debug_profileend()
 			end
-			if debug.enabled then
-				local range = math_ceil(killaura_settings.radius / killaura_settings.cell.size)
-				local current_cell = get_pos // killaura_settings.cell.size
-				for x = -range, range do
-					for y = -range, range do
-						for z = -range, range do
-							local offset = vector3(x, y, z)
-							local cell = current_cell + offset
-							local center_pos = (cell * killaura_settings.cell.size)
-								+ vector3( -- apparently using * and + operators on vector3s are faster than /?
-									killaura_settings.cell.size * 0.5,
-									killaura_settings.cell.size * 0.5,
-									killaura_settings.cell.size * 0.5
-								)
-
-							if (center_pos - get_pos).Magnitude <= killaura_settings.radius then
-								debug.killaura.draw_cells(cell, color3(0, 255, 0))
-							end
-						end
-					end
-				end
-			end
+			debug_profileend()
 		end
 	end,
 	aimbot = function()
@@ -748,8 +785,8 @@ for _, ammo_name in next, ammo_type do
 end
 
 connect(local_player.Backpack.ChildAdded, function(child)
+	debug_profilebegin("harpmod.lp.bp.ChildAdded.auto_modder")
 	if rage.auto_modder == true then
-		debug_profilebegin("harpmod.lp.bp.ChildAdded.auto_modder")
 		if is_gun(child) then
 			local gun_name = child.Name
 			local mod_data = modded_gun[gun_name]
@@ -760,8 +797,8 @@ connect(local_player.Backpack.ChildAdded, function(child)
 
 			modify_gun(gun_name, new_name, ammo, sound)
 		end
-		debug_profileend()
 	end
+	debug_profileend()
 end)
 
 renderstepped:Connect(function()
@@ -776,8 +813,6 @@ renderstepped:Connect(function()
 	debug_profileend()
 end)
 
-note:Fire("success", "ran successfully", 5)
-
 local window = ui.library:CreateWindow({
 	Title = "Harpmod 2",
 	Center = true,
@@ -789,10 +824,13 @@ local window = ui.library:CreateWindow({
 local tab = {
 	main = window:AddTab("Main"),
 	killaura = window:AddTab("Killaura"),
+	bounty_targeter = window:AddTab("Bounty Targeter"),
 	rage = window:AddTab("Rage"),
 	legit = window:AddTab("Legit"),
 	gun_modder = window:AddTab("Gun Modder"),
 }
+
+local gun_modder_stats = {}
 
 local groupbox = {
 	main = {
@@ -803,9 +841,18 @@ local groupbox = {
 		sliders = tab.killaura:AddRightGroupbox("Sliders"),
 		toggles = tab.killaura:AddLeftGroupbox("Toggles"),
 		dropdowns = tab.killaura:AddRightGroupbox("Targets"),
+		visuals = tab.killaura:AddLeftGroupbox("Visuals"),
 	},
 	rage = {
 		toggles = tab.killaura:AddLeftGroupbox("Misc"),
+	},
+	bounty_targeter = {
+		stats = tab.bounty_targeter:AddLeftGroupbox("Stats"),
+		target = tab.bounty_targeter:AddRightGroupbox("Target"),
+	},
+	modder = {
+		stat_maker = tab.gun_modder:AddLeftGroupbox("Stats"),
+		processor = tab.gun_modder:AddRightGroupbox("Name & Build"),
 	},
 }
 local slider = {
@@ -814,7 +861,7 @@ local slider = {
 			Text = "Range",
 			Default = killaura_settings.radius,
 			Min = 1,
-			Max = 225,
+			Max = 250,
 			Rounding = 1,
 			Compact = false,
 		}),
@@ -822,9 +869,20 @@ local slider = {
 			Text = "Speed",
 			Default = killaura_settings.shoot_delay,
 			Min = 0,
-			Max = 5,
+			Max = 1,
 			Rounding = 5,
 			Compact = false,
+		}),
+	},
+	bounty_targeter = {
+		max_price = groupbox.bounty_targeter.stats:AddSlider("max_price", {
+			Text = "Max Price",
+			Default = bounty.max_price,
+			Min = 1000,
+			Max = 30000,
+			Rounding = 1,
+			Compact = false,
+			Tooltip = "Will not hire people if their bounty price is set above this threshold.",
 		}),
 	},
 }
@@ -840,6 +898,11 @@ local dropdown = {
 		Text = "Blacklist",
 		Tooltip = "Killaura will target these players regardless of their name color",
 		Multi = true,
+	}),
+	bounty_target = groupbox.bounty_targeter.target:AddDropdown("player_target", {
+		SpecialType = "Player",
+		Text = "Target",
+		Tooltip = "Set the player to be targeted.",
 	}),
 }
 --[[
@@ -866,6 +929,11 @@ local toggle = {
 		Default = profiling_enabled,
 		Tooltip = "Toggles label profiling for use in MicroProfiler. Disable if you don't know what that means.",
 	}),
+	bounty_targeter_silent_target = groupbox.bounty_targeter.stats:AddToggle("bounty_targeter_silent_target", {
+		Text = "Silent Target",
+		Default = bounty.silent_target,
+		Tooltip = "Will not hire the target themselves.",
+	}),
 	aimbot_on = groupbox.rage.toggles:AddToggle("aimbot_on", {
 		Text = "Aimbot",
 		Default = rage.aimbot,
@@ -875,7 +943,7 @@ local toggle = {
 		Text = "Auto Reload",
 		Default = rage.auto_reload,
 		Tooltip = "Auto Reload will reload any gun that you hold instantly.",
-	}),
+	}), -- un PargbmGagoK7I($Vt4$Ohj@V7YS5X8%B HI_b61eb75b-668a-4463-9580-b472bacbd749
 	auto_modder = groupbox.rage.toggles:AddToggle("auto_modder_on", {
 		Text = "Auto Modder",
 		Default = rage.auto_modder,
@@ -886,10 +954,15 @@ local toggle = {
 		Default = rage.killaura,
 		Tooltip = "Toggles killaura on or off",
 	}),
-	killaura_spatial_partitioning = groupbox.killaura.bools:AddToggle("killaura_spatial_partitioning", {
-		Text = "Always Scanning",
-		Default = killaura_settings.cell.always_scanning,
-		Tooltip = "If set to 'off', killaura will only scan when camera enters a new cell.",
+	killaura_ray_beam_on = groupbox.killaura.visuals:AddToggle("killaura_ray_beam_enabled", {
+		Text = "Raycast Beam",
+		Default = killaura_settings.ray_beam.enabled,
+		Tooltip = "Adds a visual tracer of where your targets are. Disable to improve performance.",
+	}),
+	killaura_ray_beam_animated = groupbox.killaura.visuals:AddToggle("killaura_ray_beam_animated", {
+		Text = "Animated",
+		Default = killaura_settings.ray_beam.animated,
+		Tooltip = "Animates the visual tracer. Disable to improve performance.",
 	}),
 	killaura_target = { --[[
 		since linoria weird and i lazy, ill do it like this:
@@ -916,6 +989,12 @@ local toggle = {
 		}),
 	},
 }
+toggle.killaura_ray_beam_on:OnChanged(function()
+	killaura_settings.ray_beam.enabled = toggle.killaura_ray_beam_on.Value
+end)
+toggle.killaura_ray_beam_animated:OnChanged(function()
+	killaura_settings.ray_beam.animated = toggle.killaura_ray_beam_animated.Value
+end)
 
 toggle.profiling_on:OnChanged(function()
 	profiling_enabled = toggle.profiling_on.Value
@@ -939,6 +1018,10 @@ end)
 
 slider.killaura.speed:OnChanged(function()
 	killaura_settings.shoot_delay = slider.killaura.speed.Value
+end)
+
+slider.bounty_targeter.max_price:OnChanged(function()
+	bounty.max_price = slider.bounty_targeter.max_price.Value
 end)
 
 toggle.killaura_target.name_white:OnChanged(function()
@@ -969,6 +1052,8 @@ toggle.killaura_on:OnChanged(function()
 	rage.killaura = toggle.killaura_on.Value
 end)
 
-toggle.killaura_spatial_partitioning:OnChanged(function()
-	killaura_settings.cell.always_scanning = toggle.killaura_spatial_partitioning.Value
+toggle.bounty_targeter_silent_target:OnChanged(function()
+	bounty.silent_target = toggle.bounty_targeter_silent_target.Value
 end)
+
+note:Fire("success", "ran successfully", 5)

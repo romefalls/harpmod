@@ -1,0 +1,79 @@
+--[[
+	combat musicinator, dont run, youre missing 3 files
+]]
+
+local COREGUI = game:GetService("SoundService") -- troolllll
+local LocalPlayer = game:GetService("Players").LocalPlayer
+
+local YNS = Instance.new("Sound", COREGUI)
+local RNS = Instance.new("Sound", COREGUI)
+local WNS = Instance.new("Sound", COREGUI)
+
+YNS.SoundId = getcustomasset("yellowname.ogg")
+RNS.SoundId = getcustomasset("redname.ogg")
+WNS.SoundId = getcustomasset("whitename.ogg")
+
+local preloaders = {
+	part = Instance.new("Part")
+}
+
+preloaders.Part = workspace
+preloaders.CFrame = CFrame.new(0,-10,0)
+
+local a,b,c = YNS:Clone(),RNS:Clone(),WNS:Clone()
+
+a.Parent = preloaders.Part
+b.Parent = preloaders.Part
+c.Parent = preloaders.Part
+a.Looped = true
+b.Looped = true
+c.Looped = true
+a.Volume = 0.001
+b.Volume = 0.001
+c.Volume = 0.001
+a:Play()
+b:Play()
+c:Play()
+
+
+function isFlagged(locPlayer)
+	local Tag = locPlayer.Character:FindFirstChild("NameTag").TextLabel -- SKidding off of my old functions :EpicTrollFace:
+	return Tag.TextColor3
+end
+
+function playYNS()
+	if not (RNS.Playing or YNS.Playing) then
+		YNS:Play()
+	end
+end
+function playRNS()
+	if not (RNS.Playing or YNS.Playing) then
+		RNS:Play()
+	end
+end
+function playWNS()
+	if YNS.Playing then
+		repeat
+			task.wait()
+		until not YNS.Playing
+		WNS:Play()
+	end
+end
+
+game:GetService("RunService").RenderStepped:Connect(function()
+	pcall(function()
+		if isFlagged(LocalPlayer) == Color3.fromRGB(255, 187, 69) then --YELLOW
+			YNS.Looped = true
+			RNS.Looped = false
+			playYNS()
+		elseif isFlagged(LocalPlayer) == Color3.fromRGB(255, 33, 33) then --RED
+			YNS.Looped = false
+			RNS.Looped = true
+			playRNS()
+		elseif isFlagged(LocalPlayer) == Color3.fromRGB(255, 255, 255) then
+			YNS.Looped = false
+			RNS.Looped = false
+			playWNS()
+		end
+	end)
+end)
