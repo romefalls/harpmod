@@ -22,12 +22,6 @@ local legit = {
 }
 
 local killaura_settings = {
-	cell = {
-		size = 4,
-		last_cell = nil,
-		pending_update = true,
-		always_scanning = true,
-	},
 	target = {
 		white_names = false,
 		yellow_names = true,
@@ -369,25 +363,6 @@ local modded_gun = setmetatable({}, {
 	end,
 })
 
-local debug = {
-	enabled = false,
-	killaura = {
-		draw_cells = function(cell_vec3, color)
-			local size = vector3(4, 4, 4)
-			local part = instance("Part")
-			part.Size = size
-			part.Anchored = true
-			part.CanCollide = false
-			part.CanQuery = false
-			part.Transparency = 0.93
-			part.Color = color or color3(0, 255, 0)
-			part.Position = (cell_vec3 * 4) + size / 2
-			part.Parent = workspace
-			svc.debris:AddItem(part, 1.5)
-		end,
-	},
-}
-
 local tween = function(i, t, p)
 	tween_create(svc.tween, i, t, p):Play()
 end
@@ -482,11 +457,13 @@ local cast_ray = function(origin, final)
 	ray_params.FilterType = enum.RaycastFilterType.Exclude
 	ray_params.IgnoreWater = true
 	local direction = (final - origin)
+	debug_profilebegin("tracked_items")
 	for _, items in next, tracked_items do
 		for _, item in next, items do
 			table_insert(exclude, item)
 		end
 	end
+	debug_profileend()
 	ray_params.FilterDescendantsInstances = exclude
 	local result = raycast(svc.ws, origin, direction, ray_params)
 
@@ -540,8 +517,8 @@ local name_color = {
 
 local get_player_name_color = function(player)
 	local label = player.Character
-		and find_first_child_and_class_check(player.Character, "NameTag", "BillboardGui")
-		and find_first_child_and_class_check(player.Character.NameTag, "TextLabel", "TextLabel")
+		and player.Character:FindFirstChild("NameTag")
+		and player.Character:FindFirstChild("TextLabel")
 	return (label and label.TextColor3) or name_color.white
 end
 
@@ -573,14 +550,6 @@ local is_gun = function(tool)
 		return false
 	end
 	return true
-end
-
-local get_position_cell = function(pos)
-	return v3int16.new(
-		math_floor(pos.X / killaura_settings.cell.size),
-		math_floor(pos.Y / killaura_settings.cell.size),
-		math_floor(pos.Z / killaura_settings.cell.size)
-	)
 end
 
 local target_bounty = function()
@@ -631,11 +600,9 @@ local modify_gun = function(old_gun, new_gun_name, ammo_type, gun_sound, spread,
 end
 
 local killaura_func = {
-	get_current_cell = function()
-		return cf_get(workspace.CurrentCamera.CFrame, "Position") // killaura_settings.cell.size
-	end,
-	get_nearby_cell_targets = function()
-		debug_profilebegin("harpmod.killaura_func.get_nearby_cell_targets")
+	get_nearby_targets = function()
+		debug_profilebegin("harpmod.killaura_func.get_nearby_targets")
+		debug_profilebegin("check local_char_and_hrp")
 		local my_char = local_player.Character
 		if not my_char then
 			return {}
@@ -644,7 +611,7 @@ local killaura_func = {
 		if not my_hrp then
 			return {}
 		end
-		local my_cell = get_position_cell(my_hrp.Position)
+		debug_profileend()
 		local targets = {}
 		for _, player in next, get_players(svc.players) do
 			debug_profilebegin("player_" .. player.Name)
@@ -652,17 +619,10 @@ local killaura_func = {
 				debug_profileend()
 				continue
 			end
-			local hrp = wait_for_child(player.Character, "HumanoidRootPart")
+			debug_profilebegin("check target_player_hrp")
+			local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+			debug_profileend()
 			if not hrp then
-				debug_profileend()
-				continue
-			end
-			local their_cell = get_position_cell(hrp.Position)
-			local dx = math_abs(my_cell.X - their_cell.X)
-			local dy = math_abs(my_cell.Y - their_cell.Y)
-			local dz = math_abs(my_cell.Z - their_cell.Z)
-			local max_cell_distance = math_ceil(killaura_settings.radius / killaura_settings.cell.size)
-			if dx > max_cell_distance or dy > max_cell_distance or dz > max_cell_distance then
 				debug_profileend()
 				continue
 			end
@@ -670,9 +630,10 @@ local killaura_func = {
 				debug_profileend()
 				continue
 			end
-			debug_profilebegin("player_" .. player.Name .. "_checks")
+			debug_profilebegin("check name")
 			local name_key = get_player_name_key(player)
 			local is_allowed_color = killaura_settings.target[name_key .. "_names"]
+			debug_profileend()
 			if not is_allowed_color then
 				debug_profileend()
 				continue
@@ -736,25 +697,11 @@ local on_render_stepped = {
 	killaura = function()
 		if rage.killaura == true then
 			debug_profilebegin("harpmod.on_render_stepped.killaura")
-			local get_pos = cf_get(wait_for_child(local_player.Character, "HumanoidRootPart").CFrame, "Position")
-
-			local current_cell = killaura_func.get_current_cell()
-			if current_cell ~= killaura_settings.cell.last_cell then
-				killaura_settings.cell.last_cell = current_cell
-				killaura_settings.cell.pending_update = true
-			end
-			if
-				killaura_settings.cell.pending_update
-				and tick() - killaura_settings.last_kill_time > killaura_settings.shoot_delay
-			then
-				if killaura_settings.cell.always_scanning == true then
-					killaura_settings.cell.pending_update = true -- setting this to true means that it will keep updating over and over again, functioning like a normal killaura
-				else
-					killaura_settings.cell.pending_update = false
-				end
+			local get_pos = cf_get(local_player.Character:FindFirstChild("HumanoidRootPart").CFrame, "Position")
+			if tick() - killaura_settings.last_kill_time > killaura_settings.shoot_delay then
 				killaura_settings.last_kill_time = tick()
 				task_spawn(function()
-					local targets = killaura_func.get_nearby_cell_targets()
+					local targets = killaura_func.get_nearby_targets()
 					if #targets > 0 then
 						local total_targets = #targets
 						for _ = 1, total_targets do
@@ -764,40 +711,16 @@ local on_render_stepped = {
 							end
 							local target = targets[killaura_settings.last_target_index]
 							local pos = target.part.Position
-							local hum = wait_for_child(target.part.Parent, "Humanoid")
+							local hum = target.part.Parent:FindFirstChild("Humanoid")
 							if cast_ray(get_pos, pos) then
 								shoot_gun(pos.X, pos.Y, pos.Z, hum)
-								debug_profileend()
 								break
 							end
 						end
 					end
 				end)
-				debug_profileend()
 			end
-			if debug.enabled then
-				local range = math_ceil(killaura_settings.radius / killaura_settings.cell.size)
-				local current_cell = get_pos // killaura_settings.cell.size
-				for x = -range, range do
-					for y = -range, range do
-						for z = -range, range do
-							local offset = vector3(x, y, z)
-							local cell = current_cell + offset
-							local center_pos = cf_add(
-								cf_mul(cell, killaura_settings.cell.size),
-								vector3(
-									killaura_settings.cell.size * 0.5,
-									killaura_settings.cell.size * 0.5,
-									killaura_settings.cell.size * 0.5
-								)
-							)
-							if (center_pos - get_pos).Magnitude <= killaura_settings.radius then
-								debug.killaura.draw_cells(cell, color3(0, 255, 0))
-							end
-						end
-					end
-				end
-			end
+			debug_profileend()
 		end
 	end,
 	aimbot = function()
@@ -1031,11 +954,6 @@ local toggle = {
 		Default = rage.killaura,
 		Tooltip = "Toggles killaura on or off",
 	}),
-	killaura_spatial_partitioning = groupbox.killaura.bools:AddToggle("killaura_spatial_partitioning", {
-		Text = "Always Scanning",
-		Default = killaura_settings.cell.always_scanning,
-		Tooltip = "If set to 'off', killaura will only scan when camera enters a new cell.",
-	}),
 	killaura_ray_beam_on = groupbox.killaura.visuals:AddToggle("killaura_ray_beam_enabled", {
 		Text = "Raycast Beam",
 		Default = killaura_settings.ray_beam.enabled,
@@ -1132,10 +1050,6 @@ end)
 
 toggle.killaura_on:OnChanged(function()
 	rage.killaura = toggle.killaura_on.Value
-end)
-
-toggle.killaura_spatial_partitioning:OnChanged(function()
-	killaura_settings.cell.always_scanning = toggle.killaura_spatial_partitioning.Value
 end)
 
 toggle.bounty_targeter_silent_target:OnChanged(function()
