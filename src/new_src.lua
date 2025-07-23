@@ -32,7 +32,7 @@ local killaura_settings = {
 		white_names = false,
 		yellow_names = true,
 		red_names = true,
-		govt_workers = false,
+		govt_workers = false, -- TODO: this is not a be all end all solution! Government workers can still be off duty.
 	},
 	ray_beam = {
 		enabled = true,
@@ -87,11 +87,12 @@ local xpcall = xpcall
 local type = type
 local typeof = typeof
 local game = game
-local tick = tick -- oh my god
+local tick = tick
 local math_random = math.random
 local math_ceil = math.ceil
 local math_floor = math.floor
 local math_abs = math.abs
+local math_lerp = math.lerp -- selene and/or the luau lsp don't know that math.lerp has existed for the past 5 months, why the fuck are you guys asleep?
 local string_char = string.char
 
 local v3int16 = Vector3int16
@@ -117,7 +118,7 @@ local color3 = Color3.fromRGB
 local enum = Enum
 local raycast_params = RaycastParams.new
 local v2 = Vector2.new
-local angles = CFrame.fromEulerAngles --faster than .Angles
+local angles = CFrame.fromEulerAngles
 local cframe = CFrame.new
 
 local tracked_items = {}
@@ -203,6 +204,9 @@ local v3_get = get_metamethod_from_error_stack(v3_0, function(a, b)
 end, function(f)
 	return vector3(1, 2, 3).Unit == f(vector3(1, 2, 3), "Unit")
 end)
+local v3_lerp = function(a, b, t)
+	return vector3(math_lerp(a.X, b.X, t), math_lerp(a.Y, b.Y, t), math_lerp(a.Z, b.Z, t))
+end
 
 local find_first_child_and_class_check = function(parent, instance, class) -- isnt this just findfirstchildofclass?
 	for _, v in next, get_children(parent) do
@@ -443,10 +447,28 @@ local draw_ray_line = function(origin, final, color, transparency)
 		ray_part.Size = vector3(0.1, 0.1, distance)
 		ray_part.CFrame = cframe(mid_point, final)
 		ray_part.Parent = workspace
+
 		if killaura_settings.ray_beam.animated then
-			tween(ray_part, tsi.sine_inout(0.5), { Transparency = 1, Size = vector3(0, 0, distance) })
+			local duration = 0.5
+			local start_time = tick()
+			local size_start = ray_part.Size
+			local size_end = vector3(0, 0, distance)
+			local transparency_start = ray_part.Transparency
+			local transparency_end = 1
+			while true do
+				local now = tick()
+				local elapsed = now - start_time
+				local alpha = math_clamp(elapsed / duration, 0, 1)
+				ray_part.Size = v3_lerp(size_start, size_end, alpha)
+				ray_part.Transparency = transparency_start + (transparency_end - transparency_start) * alpha
+				if alpha >= 1 then
+					break
+				end
+				task.wait()
+			end
+		else
+			task.wait(0.5)
 		end
-		task.wait(0.5)
 		ray_part:Destroy()
 	end)()
 	debug_profileend()
@@ -609,7 +631,7 @@ end
 
 local killaura_func = {
 	get_current_cell = function()
-		return workspace.CurrentCamera.CFrame.Position // killaura_settings.cell.size
+		return cf_get(workspace.CurrentCamera.CFrame, "Position") // killaura_settings.cell.size
 	end,
 	get_nearby_cell_targets = function()
 		debug_profilebegin("harpmod.killaura_func.get_nearby_cell_targets")
@@ -929,7 +951,7 @@ local slider = {
 		}),
 	},
 	bounty_targeter = {
-		max_price = groupbox.bounty_targeter.stats:AddSlider("max_price",{
+		max_price = groupbox.bounty_targeter.stats:AddSlider("max_price", {
 			Text = "Max Price",
 			Default = bounty.max_price,
 			Min = 1000,
@@ -953,10 +975,10 @@ local dropdown = {
 		Tooltip = "Killaura will target these players regardless of their name color",
 		Multi = true,
 	}),
-	bounty_target = groupbox.bounty_targeter.target:AddDropdown("player_target",{
+	bounty_target = groupbox.bounty_targeter.target:AddDropdown("player_target", {
 		SpecialType = "Player",
 		Text = "Target",
-		Tooltip = "Set the player to be targeted."
+		Tooltip = "Set the player to be targeted.",
 	}),
 }
 --[[
@@ -983,7 +1005,7 @@ local toggle = {
 		Default = profiling_enabled,
 		Tooltip = "Toggles label profiling for use in MicroProfiler. Disable if you don't know what that means.",
 	}),
-	bounty_targeter_silent_target = groupbox.bounty_targeter.stats:AddToggle("bounty_targeter_silent_target",{
+	bounty_targeter_silent_target = groupbox.bounty_targeter.stats:AddToggle("bounty_targeter_silent_target", {
 		Text = "Silent Target",
 		Default = bounty.silent_target,
 		Tooltip = "Will not hire the target themselves.",
@@ -997,7 +1019,7 @@ local toggle = {
 		Text = "Auto Reload",
 		Default = rage.auto_reload,
 		Tooltip = "Auto Reload will reload any gun that you hold instantly.",
-	}), -- un PargbmGagoK7I($Vt4$Ohj@V7YS5X8%B HI_b61eb75b-668a-4463-9580-b472bacbd749 	
+	}), -- un PargbmGagoK7I($Vt4$Ohj@V7YS5X8%B HI_b61eb75b-668a-4463-9580-b472bacbd749
 	auto_modder = groupbox.rage.toggles:AddToggle("auto_modder_on", {
 		Text = "Auto Modder",
 		Default = rage.auto_modder,

@@ -1,12 +1,11 @@
-local target = "ArchAwesome9"
+local target = "filipagent003"
 local max_price = 1000
 local silent_target = false -- will not alert the target that theyre being hunted, in other words won't give them the bounty popup
 
 for _, v in game.Players:GetPlayers() do -- for each player (v), do this:
 	print("let's handle ", v )
-	if v == game:GetService("Players"):WaitForChild(target) then -- is this guy our target?
-		if silent_target then -- ok he is, is silent_target on?
-			print("this guy is your target, ill skip him")
+	if v == game:GetService("Players"):WaitForChild(target) then -- is this player our target?
+		if silent_target then -- ok they are, is silent_target on?
 			return -- it's on, let's do nothing
 		end
 	end
@@ -14,7 +13,7 @@ for _, v in game.Players:GetPlayers() do -- for each player (v), do this:
 		local args = {
 			15, -- opcode
 			v, -- tell this player
-			game:GetService("Players"):WaitForChild(target), -- to hunt this guy
+			game:GetService("Players"):WaitForChild(target), -- to hunt this player
 		}
 
 		game:GetService("ReplicatedStorage")
@@ -26,3 +25,4 @@ for _, v in game.Players:GetPlayers() do -- for each player (v), do this:
 
 	end
 end
+
