@@ -89,6 +89,7 @@ local typeof = typeof
 local game = game
 local tick = tick
 local math_random = math.random
+local math_clamp = math.clamp
 local math_ceil = math.ceil
 local math_floor = math.floor
 local math_abs = math.abs
