@@ -519,7 +519,7 @@ local name_color = {
 local get_player_name_color = function(player)
 	local label = player.Character
 		and player.Character:FindFirstChild("NameTag")
-		and player.Character:FindFirstChild("TextLabel")
+		and player.Character.NameTag:FindFirstChild("TextLabel")
 	return (label and label.TextColor3) or name_color.white
 end
 
@@ -633,7 +633,7 @@ local killaura_func = {
 			end
 			debug_profilebegin("check name")
 			local name_key = get_player_name_key(player)
-			local is_allowed_color = killaura_settings.target[name_key .. "_names"] -- TODO: killaura not targeting name colors properly!
+			local is_allowed_color = killaura_settings.target[name_key .. "_names"]
 			debug_profileend()
 			if not is_allowed_color then
 				debug_profileend()
