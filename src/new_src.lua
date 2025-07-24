@@ -36,6 +36,7 @@ local killaura_settings = {
 	last_kill_time = 0,
 	shoot_delay = 0.045,
 	last_target_index = 1,
+	shoot_amount = 5,
 }
 
 local reload_settings = {
@@ -632,7 +633,7 @@ local killaura_func = {
 			end
 			debug_profilebegin("check name")
 			local name_key = get_player_name_key(player)
-			local is_allowed_color = killaura_settings.target[name_key .. "_names"]
+			local is_allowed_color = killaura_settings.target[name_key .. "_names"] -- TODO: killaura not targeting name colors properly!
 			debug_profileend()
 			if not is_allowed_color then
 				debug_profileend()
@@ -713,7 +714,9 @@ local on_render_stepped = {
 							local pos = target.part.Position
 							local hum = target.part.Parent:FindFirstChild("Humanoid")
 							if cast_ray(get_pos, pos) then
-								shoot_gun(pos.X, pos.Y, pos.Z, hum)
+								for _ = 1, killaura_settings.shoot_amount do
+									shoot_gun(pos.X, pos.Y, pos.Z, hum)
+								end
 								break
 							end
 						end
@@ -859,6 +862,7 @@ local slider = {
 	killaura = {
 		range = groupbox.killaura.sliders:AddSlider("killaura_range", {
 			Text = "Range",
+			Tooltip = "Killaura will not target anyone past this range. Max limit as defined by serverside checks.",
 			Default = killaura_settings.radius,
 			Min = 1,
 			Max = 250,
@@ -867,12 +871,33 @@ local slider = {
 		}),
 		speed = groupbox.killaura.sliders:AddSlider("killaura_speed", {
 			Text = "Speed",
+			Tooltip = "Set to 0 if using a rem or bfist for maximum epic.",
 			Default = killaura_settings.shoot_delay,
 			Min = 0,
 			Max = 1,
 			Rounding = 5,
 			Compact = false,
 		}),
+		amount = groupbox.killaura.sliders:AddSlider("killaura_fire_amount", {
+			Text = "Amount",
+			Tooltip = "Only makes sense to use with rems and bfists. Set to 1 if using any other gun.",
+			Default = killaura_settings.shoot_amount,
+			Min = 1,
+			Max = 50,
+			Rounding = 0, -- fuck if i know how the rounding works in linoria
+			Compact = false,
+		}),
+		-- fuck this
+		lab = groupbox.killaura:AddLabel(
+			[[
+		At 120 FPS, targeting a single player,
+		killaura will execute 120 * Amount attacks per second.
+		This occurs regardless of server-side conditions,
+		including weapon type restrictions (e.g. Remington, Bfist).
+		If Amount is set to 2 it'll fire 240 times per second.
+	]],
+			true
+		),
 	},
 	bounty_targeter = {
 		max_price = groupbox.bounty_targeter.stats:AddSlider("max_price", {
@@ -1019,7 +1044,9 @@ end)
 slider.killaura.speed:OnChanged(function()
 	killaura_settings.shoot_delay = slider.killaura.speed.Value
 end)
-
+slider.killaura.amount:OnChanged(function()
+	killaura_settings.shoot_amount = slider.killaura.amount.Value
+end)
 slider.bounty_targeter.max_price:OnChanged(function()
 	bounty.max_price = slider.bounty_targeter.max_price.Value
 end)
