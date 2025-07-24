@@ -173,7 +173,6 @@ local svc = { -- apparently findfirstchildofclass is faster than getservice?
 local get_players = ins_get(svc.players, "GetPlayers")
 local is_a = ins_get(game, "IsA")
 local raycast = ins_get(svc.ws, "Raycast")
-local renderstepped = ins_get(svc.run, "RenderStepped")
 local heartbeat = ins_get(svc.run, "Heartbeat")
 local connect = heartbeat.Connect
 local get_property_changed_signal = ins_get(game, "GetPropertyChangedSignal")
@@ -694,10 +693,10 @@ local reload_gun = function(amount)
 	end
 end
 
-local on_render_stepped = {
+local on_heartbeat = {
 	killaura = function()
 		if rage.killaura == true then
-			debug_profilebegin("harpmod.on_render_stepped.killaura")
+			debug_profilebegin("harpmod.on_heartbeat.killaura")
 			local get_pos = cf_get(local_player.Character:FindFirstChild("HumanoidRootPart").CFrame, "Position")
 			if tick() - killaura_settings.last_kill_time > killaura_settings.shoot_delay then
 				killaura_settings.last_kill_time = tick()
@@ -804,9 +803,9 @@ connect(local_player.Backpack.ChildAdded, function(child) -- TODO: this is unrel
 	debug_profileend()
 end)
 
-renderstepped:Connect(function()
-	debug_profilebegin("harpmod.renderstepped")
-	for _, v in next, on_render_stepped do
+heartbeat:Connect(function()
+	debug_profilebegin("harpmod.heartbeat")
+	for _, v in next, on_heartbeat do
 		xpcall(function()
 			task_spawn(v)
 		end, function(err)
