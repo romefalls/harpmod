@@ -6,7 +6,7 @@ Harpmod 2 is a script for [Electric State](https://www.roblox.com/games/22624418
 
 ## how to run
 
-Run this in your executor: `pcall(function() loadstring(game:HttpGet('https://raw.githubusercontent.com/ic3w0lf22/Unnamed-ESP/master/UnnamedESP.lua'))() end)`
+Run this in your executor: `pcall(function() loadstring(game:HttpGet('https://raw.githubusercontent.com/romefalls/harpmod/refs/heads/main/src/new_src.lua'))() end)`
 
 ## why u hack
 
