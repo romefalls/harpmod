@@ -888,7 +888,7 @@ local slider = {
 			Compact = false,
 		}),
 		-- fuck this
-		lab = groupbox.killaura:AddLabel(
+		lab = groupbox.killaura.sliders:AddLabel(
 			[[
 		At 120 FPS, targeting a single player,
 		killaura will execute 120 * Amount attacks per second.
