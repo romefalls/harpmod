@@ -11,9 +11,9 @@ local rage = {
 	killaura = true,
 	aimbot = false,
 	auto_reload = true,
-	auto_modder = true,
-	auto_cola = true, -- for normal ones
-	cola_god = true, -- for mythic one
+	auto_modder = false,
+	auto_cola = false, -- for normal ones
+	cola_god = false, -- for mythic one
 }
 
 local legit = {
@@ -787,7 +787,7 @@ for _, ammo_name in next, ammo_type do
 	end)
 end
 
-connect(local_player.Backpack.ChildAdded, function(child)
+connect(local_player.Backpack.ChildAdded, function(child) -- TODO: this is unreliable
 	debug_profilebegin("harpmod.lp.bp.ChildAdded.auto_modder")
 	if rage.auto_modder == true then
 		if is_gun(child) then
@@ -821,7 +821,7 @@ local window = ui.library:CreateWindow({
 	Center = true,
 	AutoShow = true,
 	TabPadding = 8,
-	MenuFadeTime = 0.2,
+	MenuFadeTime = 0.1,
 })
 
 local tab = {
@@ -930,24 +930,7 @@ local dropdown = {
 		Tooltip = "Set the player to be targeted.",
 	}),
 }
---[[
 
-local rage = {
-	killaura = true,
-	aimbot = false,
-	auto_reload = true,
-	auto_modder = true,
-	auto_cola = true, -- for normal ones
-	cola_god = true, -- for mythic one
-}
-
-local legit = {
-	autobuy = true,
-	max_hunger = true,
-}
-
-
-]]
 local toggle = {
 	profiling_on = groupbox.main.debug:AddToggle("microprofiler_labels_on", {
 		Text = "Profiling",
