@@ -1,4 +1,4 @@
-local lyricalation = 1
+local lyricalation = 3
 -- 0 = all, 1 = lunaware vs stas, 2 = wanwood vs 2j0y, 3 = hua vs werth, 4 = francis vs kekse
 local TextChatService = game:GetService("TextChatService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
