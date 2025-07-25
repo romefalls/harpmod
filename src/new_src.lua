@@ -448,6 +448,7 @@ ray_params.IgnoreWater = true
 
 local cast_ray = function(origin, final)
 	debug_profilebegin("harpmod.cast_ray")
+	debug_profilebegin("setting properties")
 	local exclude = { local_player.Character, workspace.Vehicles }
 	local direction = (final - origin)
 	debug_profilebegin("tracked_items")
@@ -458,8 +459,10 @@ local cast_ray = function(origin, final)
 	end
 	debug_profileend()
 	ray_params.FilterDescendantsInstances = exclude
+	debug_profileend()
+	debug_profilebegin("raycast")
 	local result = raycast(svc.ws, origin, direction, ray_params)
-
+	debug_profileend()
 	if result then
 		local hit_pos = result.Position
 
