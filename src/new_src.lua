@@ -114,7 +114,6 @@ local vector3 = Vector3.new
 local color3 = Color3.fromRGB
 local enum = Enum
 local raycast_params = RaycastParams.new
-local v2 = Vector2.new
 local angles = CFrame.fromEulerAngles
 local cframe = CFrame.new
 
@@ -160,6 +159,15 @@ end, function(f)
 	return f(a, "Name") == b
 end)
 
+local ins_set = get_metamethod_from_error_stack(game, function(a, b, c)
+	a[b] = c
+end, function(f)
+	local a = instance("Folder")
+	local b = random_string()
+	f(a, "Name", b)
+	return a.Name == b
+end)
+
 local find_first_child_of_class = ins_get(game, "FindFirstChildOfClass")
 
 local svc = { -- apparently findfirstchildofclass is faster than getservice?
@@ -178,7 +186,9 @@ local heartbeat = ins_get(svc.run, "Heartbeat")
 local connect = heartbeat.Connect
 local get_property_changed_signal = ins_get(game, "GetPropertyChangedSignal")
 local get_children = ins_get(game, "GetChildren")
-local tween_create = svc.tween.Create
+local find_first_child = ins_get(game, "FindFirstChild")
+local descendants = ins_get(character, "GetDescendants")
+local all_descendants = descendants(character)
 
 local cf_get = get_metamethod_from_error_stack(cf_0, function(a, b)
 	return a[b]
@@ -202,15 +212,6 @@ end, function(f)
 end)
 local v3_lerp = function(a, b, t)
 	return vector3(math_lerp(a.X, b.X, t), math_lerp(a.Y, b.Y, t), math_lerp(a.Z, b.Z, t))
-end
-
-local find_first_child_and_class_check = function(parent, instance, class) -- isnt this just findfirstchildofclass?
-	for _, v in get_children(parent) do
-		if is_a(v, class) and (ins_get(v, "Name") == instance) then
-			return v
-		end
-	end
-	return nil
 end
 
 local wait_for_child = function(parent, instance)
@@ -362,27 +363,31 @@ local track_character = function(character)
 	end
 	local items = {}
 
-	for _, desc in character:GetDescendants() do
-		if desc:IsA("Tool") or desc:IsA("Accessory") then
+	local descendants = ins_get(character, "GetDescendants")
+	for _, desc in ipairs(descendants(character)) do
+		if is_a(desc, "Tool") or is_a(desc, "Accessory") then
 			table_insert(items, desc)
 		end
 	end
 
 	tracked_items[character] = items
 
-	character.DescendantAdded:Connect(function(desc)
-		if desc:IsA("Tool") or desc:IsA("Accessory") then
+	local descendant_added_signal = ins_get(character, "DescendantAdded")
+	connect(descendant_added_signal, function(desc)
+		if is_a(desc, "Tool") or is_a(desc, "Accessory") then
 			table_insert(tracked_items[character], desc)
 		end
 	end)
 
-	character.AncestryChanged:Connect(function(_, parent)
+	local ancestry_changed_signal = ins_get(character, "AncestryChanged")
+	connect(ancestry_changed_signal, function(_, parent)
 		if not parent then
 			tracked_items[character] = nil
 		end
 	end)
 	debug_profileend()
 end
+
 
 for _, player in get_players(svc.players) do
 	track_character(player.Character)
@@ -396,21 +401,21 @@ local draw_ray_line = function(origin, final, color, transparency)
 	debug_profilebegin("harpmod.draw_ray_line")
 	coroutine.wrap(function()
 		local ray_part = instance("Part")
-		ray_part.Anchored = true
-		ray_part.CanCollide = false
-		ray_part.CanQuery = false
-		ray_part.CanTouch = false
-		ray_part.Material = enum.Material.Neon
-		ray_part.Color = color
-		ray_part.Transparency = transparency or 0
+		ins_set(ray_part, "Anchored", true)
+		ins_set(ray_part, "CanCollide", false)
+		ins_set(ray_part, "CanQuery", false)
+		ins_set(ray_part, "CanTouch", false)
+		ins_set(ray_part, "Material", enum.Material.Neon)
+		ins_set(ray_part, "Color", color)
+		ins_set(ray_part, "Transparency", transparency or 0)
 
 		local direction = final - origin
 		local distance = direction.Magnitude
 		local mid_point = origin + (direction / 2)
 
-		ray_part.Size = vector3(0.1, 0.1, distance)
-		ray_part.CFrame = cframe(mid_point, final)
-		ray_part.Parent = workspace
+		ins_set(ray_part, "Size", vector3(0.1, 0.1, distance))
+		ins_set(ray_part, "CFrame", cframe(mid_point, final))
+		ins_set(ray_part, "Parent", workspace)
 
 		if killaura_settings.ray_beam.animated then
 			local duration = 0.5
@@ -423,8 +428,8 @@ local draw_ray_line = function(origin, final, color, transparency)
 				local now = os_clock()
 				local elapsed = now - start_time
 				local alpha = math_clamp(elapsed / duration, 0, 1)
-				ray_part.Size = v3_lerp(size_start, size_end, alpha)
-				ray_part.Transparency = transparency_start + (transparency_end - transparency_start) * alpha
+				ins_set(ray_part, "Size", v3_lerp(size_start, size_end, alpha))
+				ins_set(ray_part, "Transparency", transparency_start + (transparency_end - transparency_start) * alpha)
 				if alpha >= 1 then
 					break
 				end
@@ -505,8 +510,8 @@ local name_color = {
 
 local get_player_name_color = function(player)
 	local label = player.Character
-		and player.Character:FindFirstChild("NameTag")
-		and player.Character.NameTag:FindFirstChild("TextLabel")
+		and find_first_child(player.Character,"NameTag")
+		and find_first_child(player.Character.NameTag,"TextLabel")
 	return (label and label.TextColor3) or name_color.white
 end
 
@@ -528,17 +533,18 @@ local is_gun = function(tool)
 	if not tool then
 		return
 	end
-	local handle = tool:FindFirstChild("Handle")
+	local handle = find_first_child(tool, "Handle")
 	if not handle then
 		return
 	end
-	local has_fire = handle:FindFirstChild("Fire") -- i am way too lazy to find another way to check if this is a gun
-	local has_reload = handle:FindFirstChild("Reload")
+	local has_fire = find_first_child(handle, "Fire")
+	local has_reload = find_first_child(handle, "Reload")
 	if not has_fire and not has_reload then
 		return false
 	end
 	return true
 end
+
 
 local target_bounty = function()
 	for _, v in get_players(svc.players) do
@@ -553,7 +559,7 @@ local target_bounty = function()
 				v,
 				game:GetService("Players"):WaitForChild(target),
 			}
-			game_event.menu_action.FireServer(unpack(args))
+			game_event.menu_action:FireServer(unpack(args))
 		else
 			warn("price was too large, expected ", max_price, " or less, got " .. v.TargetBounty.HirePrice.Value)
 		end
@@ -564,7 +570,7 @@ local modify_gun = function(old_gun, new_gun_name, ammo_type, gun_sound, spread,
 	if rage.auto_modder ~= true then
 		note:Fire("mod " .. old_gun, "Make sure to have your " .. old_gun .. " unequipped", 5)
 	end
-	local gun = wait_for_child(local_player.Backpack, old_gun)
+	local gun = local_player.Backpack:FindFirstChild("old_gun")
 	gun.LocalScript:Destroy()
 	require(svc.rs.Modules.TS[(false and "ANS") or "GNS"]).Initiate(
 		gun, -- old gun
@@ -595,7 +601,7 @@ local killaura_func = {
 		if not my_char then
 			return {}
 		end
-		local my_hrp = wait_for_child(my_char, "HumanoidRootPart")
+		local my_hrp = find_first_child(my_char, "HumanoidRootPart")
 		if not my_hrp then
 			return {}
 		end
@@ -608,7 +614,7 @@ local killaura_func = {
 				continue
 			end
 			debug_profilebegin("check target_player_hrp")
-			local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+			local hrp = find_first_child(player.Character,"HumanoidRootPart")
 			debug_profileend()
 			if not hrp then
 				debug_profileend()
@@ -642,7 +648,8 @@ local killaura_func = {
 }
 
 local shoot_gun = function(x, y, z, humanoid)
-	local tool = local_player.Character:FindFirstChildOfClass("Tool")
+	local char = ins_get(local_player, "Character")
+	local tool = find_first_child_of_class(char, "Tool")
 	if is_gun(tool) then
 		local args = {
 			[1] = 33,
@@ -672,7 +679,8 @@ local reload_gun = function(amount)
 	if now - reload_settings.last_reload_time < reload_settings.reload_delay then
 		return
 	end
-	local tool = local_player.Character:FindFirstChildOfClass("Tool")
+	local char = ins_get(local_player, "Character")
+	local tool = find_first_child_of_class(char, "Tool")
 	if tool then
 		if is_gun(tool) then
 			game_event.reload_action:FireServer(get_ammo_type(tool.Name), amount, tool)
@@ -680,12 +688,13 @@ local reload_gun = function(amount)
 		end
 	end
 end
-
 local on_heartbeat = {
 	killaura = function()
 		if rage.killaura == true then
 			debug_profilebegin("harpmod.on_heartbeat.killaura")
-			local get_pos = cf_get(local_player.Character:FindFirstChild("HumanoidRootPart").CFrame, "Position")
+			local char = ins_get(local_player, "Character")
+			local hrp = find_first_child(char, "HumanoidRootPart")
+			local get_pos = cf_get(hrp.CFrame, "Position")
 			if os_clock() - killaura_settings.last_kill_time > killaura_settings.shoot_delay then
 				killaura_settings.last_kill_time = os_clock()
 				task_spawn(function()
@@ -699,7 +708,7 @@ local on_heartbeat = {
 							end
 							local target = targets[killaura_settings.last_target_index]
 							local pos = target.part.Position
-							local hum = target.part.Parent:FindFirstChild("Humanoid")
+							local hum = find_first_child(target.part.Parent, "Humanoid")
 							if cast_ray(get_pos, pos) then
 								for _ = 1, killaura_settings.shoot_amount do
 									shoot_gun(pos.X, pos.Y, pos.Z, hum)
@@ -756,7 +765,7 @@ local on_heartbeat = {
 }
 
 for _, ammo_name in ammo_type do
-	local ammo_stat = wait_for_child(player_data, ammo_name)
+	local ammo_stat = find_first_child(player_data, ammo_name)
 	connect(get_property_changed_signal(ammo_stat, "Value"), function()
 		if legit.autobuy == true then
 			debug_profilebegin("harpmod.auto_buy")
@@ -791,7 +800,7 @@ connect(local_player.Backpack.ChildAdded, function(child) -- TODO: this is unrel
 	debug_profileend()
 end)
 
-heartbeat:Connect(function()
+connect(function()
 	debug_profilebegin("harpmod.heartbeat")
 	for _, v in on_heartbeat do
 		xpcall(function()
