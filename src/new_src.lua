@@ -187,8 +187,8 @@ local connect = heartbeat.Connect
 local get_property_changed_signal = ins_get(game, "GetPropertyChangedSignal")
 local get_children = ins_get(game, "GetChildren")
 local find_first_child = ins_get(game, "FindFirstChild")
-local descendants = ins_get(character, "GetDescendants")
-local all_descendants = descendants(character)
+local descendants = ins_get(game, "GetDescendants")
+local all_descendants = descendants(game)
 
 local cf_get = get_metamethod_from_error_stack(cf_0, function(a, b)
 	return a[b]
@@ -388,7 +388,6 @@ local track_character = function(character)
 	debug_profileend()
 end
 
-
 for _, player in get_players(svc.players) do
 	track_character(player.Character)
 	player.CharacterAdded:Connect(track_character)
@@ -443,12 +442,13 @@ local draw_ray_line = function(origin, final, color, transparency)
 	debug_profileend()
 end
 
+local ray_params = raycast_params()
+ray_params.FilterType = enum.RaycastFilterType.Exclude
+ray_params.IgnoreWater = true
+
 local cast_ray = function(origin, final)
 	debug_profilebegin("harpmod.cast_ray")
-	local ray_params = raycast_params()
 	local exclude = { local_player.Character, workspace.Vehicles }
-	ray_params.FilterType = enum.RaycastFilterType.Exclude
-	ray_params.IgnoreWater = true
 	local direction = (final - origin)
 	debug_profilebegin("tracked_items")
 	for _, items in tracked_items do
@@ -510,8 +510,8 @@ local name_color = {
 
 local get_player_name_color = function(player)
 	local label = player.Character
-		and find_first_child(player.Character,"NameTag")
-		and find_first_child(player.Character.NameTag,"TextLabel")
+		and find_first_child(player.Character, "NameTag")
+		and find_first_child(player.Character.NameTag, "TextLabel")
 	return (label and label.TextColor3) or name_color.white
 end
 
@@ -544,7 +544,6 @@ local is_gun = function(tool)
 	end
 	return true
 end
-
 
 local target_bounty = function()
 	for _, v in get_players(svc.players) do
@@ -597,7 +596,7 @@ local killaura_func = {
 	get_nearby_targets = function()
 		debug_profilebegin("harpmod.killaura_func.get_nearby_targets")
 		debug_profilebegin("check local_char_and_hrp")
-		local my_char = local_player.Character
+		local my_char = ins_get(local_player, "Character")
 		if not my_char then
 			return {}
 		end
@@ -609,13 +608,16 @@ local killaura_func = {
 		local targets = {}
 		for _, player in get_players(svc.players) do
 			debug_profilebegin("player_" .. player.Name)
-			if player == local_player or not player.Character then
+			if player == local_player then
 				debug_profileend()
 				continue
 			end
-			debug_profilebegin("check target_player_hrp")
-			local hrp = find_first_child(player.Character,"HumanoidRootPart")
-			debug_profileend()
+			local player_char = ins_get(player, "Character")
+			if not player_char then
+				debug_profileend()
+				continue
+			end
+			local hrp = find_first_child(player_char, "HumanoidRootPart")
 			if not hrp then
 				debug_profileend()
 				continue
@@ -800,7 +802,7 @@ connect(local_player.Backpack.ChildAdded, function(child) -- TODO: this is unrel
 	debug_profileend()
 end)
 
-connect(function()
+connect(heartbeat, function()
 	debug_profilebegin("harpmod.heartbeat")
 	for _, v in on_heartbeat do
 		xpcall(function()
