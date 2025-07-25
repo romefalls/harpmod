@@ -83,6 +83,7 @@ local type = type
 local typeof = typeof
 local game = game
 local tick = tick
+local os_clock = os.clock
 local math_random = math.random
 local math_clamp = math.clamp
 local math_ceil = math.ceil
@@ -245,15 +246,6 @@ local color = {
 local player_data = local_player.PlayerData
 local note = game_instance.events.Note
 
-local tsi = {
-	exponentiate_out = function(t)
-		return TweenInfo.new(t, enum.EasingStyle.Exponential, enum.EasingDirection.Out)
-	end,
-	sine_inout = function(t)
-		return TweenInfo.new(t, enum.EasingStyle.Sine, enum.EasingDirection.InOut)
-	end,
-}
-
 local ammo_type = {
 	heavy = "Heavy Ammo",
 	pistol = "Pistol Ammo",
@@ -363,10 +355,6 @@ local modded_gun = setmetatable({}, {
 	end,
 })
 
-local tween = function(i, t, p)
-	tween_create(svc.tween, i, t, p):Play()
-end
-
 local track_character = function(character)
 	debug_profilebegin("harpmod.track_character")
 	if not character then
@@ -426,13 +414,13 @@ local draw_ray_line = function(origin, final, color, transparency)
 
 		if killaura_settings.ray_beam.animated then
 			local duration = 0.5
-			local start_time = tick()
+			local start_time = os_clock()
 			local size_start = ray_part.Size
 			local size_end = vector3(0, 0, distance)
 			local transparency_start = ray_part.Transparency
 			local transparency_end = 1
 			while true do
-				local now = tick()
+				local now = os_clock()
 				local elapsed = now - start_time
 				local alpha = math_clamp(elapsed / duration, 0, 1)
 				ray_part.Size = v3_lerp(size_start, size_end, alpha)
@@ -680,7 +668,7 @@ local _swing_melee = function(target_player)
 end
 
 local reload_gun = function(amount)
-	local now = tick()
+	local now = os_clock()
 	if now - reload_settings.last_reload_time < reload_settings.reload_delay then
 		return
 	end
@@ -698,8 +686,8 @@ local on_heartbeat = {
 		if rage.killaura == true then
 			debug_profilebegin("harpmod.on_heartbeat.killaura")
 			local get_pos = cf_get(local_player.Character:FindFirstChild("HumanoidRootPart").CFrame, "Position")
-			if tick() - killaura_settings.last_kill_time > killaura_settings.shoot_delay then
-				killaura_settings.last_kill_time = tick()
+			if os_clock() - killaura_settings.last_kill_time > killaura_settings.shoot_delay then
+				killaura_settings.last_kill_time = os_clock()
 				task_spawn(function()
 					local targets = killaura_func.get_nearby_targets()
 					if #targets > 0 then

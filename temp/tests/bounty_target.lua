@@ -1,4 +1,4 @@
-local target = "zKa_i"
+local target = "Def_Ex"
 local max_price = 1000
 local silent_target = false -- will not alert the target that theyre being hunted, in other words won't give them the bounty popup
 
