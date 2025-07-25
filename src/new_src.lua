@@ -205,7 +205,7 @@ local v3_lerp = function(a, b, t)
 end
 
 local find_first_child_and_class_check = function(parent, instance, class) -- isnt this just findfirstchildofclass?
-	for _, v in next, get_children(parent) do
+	for _, v in get_children(parent) do
 		if is_a(v, class) and (ins_get(v, "Name") == instance) then
 			return v
 		end
@@ -214,7 +214,7 @@ local find_first_child_and_class_check = function(parent, instance, class) -- is
 end
 
 local wait_for_child = function(parent, instance)
-	for _, v in next, get_children(parent) do
+	for _, v in get_children(parent) do
 		if ins_get(v, "Name") == instance then
 			return v
 		end
@@ -336,7 +336,7 @@ local modded_gun_data = {
 		sound = 19,
 	},
 }
-for _, gun in next, modded_gun_data do
+for _, gun in modded_gun_data do
 	setmetatable(gun, {
 		__index = default_modded_gun_properties,
 	})
@@ -362,7 +362,7 @@ local track_character = function(character)
 	end
 	local items = {}
 
-	for _, desc in next, character:GetDescendants() do
+	for _, desc in character:GetDescendants() do
 		if desc:IsA("Tool") or desc:IsA("Accessory") then
 			table_insert(items, desc)
 		end
@@ -384,7 +384,7 @@ local track_character = function(character)
 	debug_profileend()
 end
 
-for _, player in next, get_players(svc.players) do
+for _, player in get_players(svc.players) do
 	track_character(player.Character)
 	player.CharacterAdded:Connect(track_character)
 end
@@ -446,8 +446,8 @@ local cast_ray = function(origin, final)
 	ray_params.IgnoreWater = true
 	local direction = (final - origin)
 	debug_profilebegin("tracked_items")
-	for _, items in next, tracked_items do
-		for _, item in next, items do
+	for _, items in tracked_items do
+		for _, item in items do
 			table_insert(exclude, item)
 		end
 	end
@@ -476,8 +476,8 @@ local cast_ray = function(origin, final)
 end
 
 local get_ammo_type = function(gun_name)
-	for ammo_category, gun_list in next, gun do
-		for _, name in next, gun_list do
+	for ammo_category, gun_list in gun do
+		for _, name in gun_list do
 			if name == gun_name then
 				return ammo_type[ammo_category]
 			end
@@ -512,7 +512,7 @@ end
 
 local get_player_name_key = function(player)
 	local col = get_player_name_color(player)
-	for key, color_val in next, name_color do
+	for key, color_val in name_color do
 		if color_val == col then
 			return key
 		end
@@ -520,7 +520,7 @@ local get_player_name_key = function(player)
 	return "white"
 end
 
-for gun_name, data in next, modded_gun do
+for gun_name, data in modded_gun do
 	data.ammo_type = get_ammo_type(gun_name)
 end
 
@@ -601,7 +601,7 @@ local killaura_func = {
 		end
 		debug_profileend()
 		local targets = {}
-		for _, player in next, get_players(svc.players) do
+		for _, player in get_players(svc.players) do
 			debug_profilebegin("player_" .. player.Name)
 			if player == local_player or not player.Character then
 				debug_profileend()
@@ -755,7 +755,7 @@ local on_heartbeat = {
 	]]
 }
 
-for _, ammo_name in next, ammo_type do
+for _, ammo_name in ammo_type do
 	local ammo_stat = wait_for_child(player_data, ammo_name)
 	connect(get_property_changed_signal(ammo_stat, "Value"), function()
 		if legit.autobuy == true then
@@ -793,7 +793,7 @@ end)
 
 heartbeat:Connect(function()
 	debug_profilebegin("harpmod.heartbeat")
-	for _, v in next, on_heartbeat do
+	for _, v in on_heartbeat do
 		xpcall(function()
 			task_spawn(v)
 		end, function(err)
