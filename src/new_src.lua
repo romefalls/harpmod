@@ -188,7 +188,6 @@ local get_property_changed_signal = ins_get(game, "GetPropertyChangedSignal")
 local get_children = ins_get(game, "GetChildren")
 local find_first_child = ins_get(game, "FindFirstChild")
 local descendants = ins_get(game, "GetDescendants")
-local all_descendants = descendants(game)
 
 local cf_get = get_metamethod_from_error_stack(cf_0, function(a, b)
 	return a[b]
@@ -363,8 +362,7 @@ local track_character = function(character)
 	end
 	local items = {}
 
-	local descendants = ins_get(character, "GetDescendants")
-	for _, desc in ipairs(descendants(character)) do
+	for _, desc in descendants(character) do
 		if is_a(desc, "Tool") or is_a(desc, "Accessory") then
 			table_insert(items, desc)
 		end
@@ -398,7 +396,7 @@ local draw_ray_line = function(origin, final, color, transparency)
 		return
 	end
 	debug_profilebegin("harpmod.draw_ray_line")
-	coroutine.wrap(function()
+	coroutine.wrap(function() -- TODO: replace with drawing api
 		local ray_part = instance("Part")
 		ins_set(ray_part, "Anchored", true)
 		ins_set(ray_part, "CanCollide", false)
@@ -548,7 +546,7 @@ local is_gun = function(tool)
 	return true
 end
 
-local target_bounty = function()
+local target_bounty = function()	
 	for _, v in get_players(svc.players) do
 		if v == wait_for_child(svc.players, bounty.target) then
 			if bounty.silent_target then
@@ -559,11 +557,11 @@ local target_bounty = function()
 			local args = {
 				15,
 				v,
-				game:GetService("Players"):WaitForChild(target),
+				game:GetService("Players"):WaitForChild(bounty.target),
 			}
 			game_event.menu_action:FireServer(unpack(args))
 		else
-			warn("price was too large, expected ", max_price, " or less, got " .. v.TargetBounty.HirePrice.Value)
+			warn("price was too large, expected ", bounty.max_price, " or less, got " .. v.TargetBounty.HirePrice.Value)
 		end
 	end
 end
