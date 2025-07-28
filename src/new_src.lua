@@ -951,7 +951,7 @@ local toggle = {
 		Default = rage.auto_reload,
 		Tooltip = "Auto Reload will reload any gun that you hold instantly.",
 	}), -- un PargbmGagoK7I($Vt4$Ohj@V7YS5X8%B HI_b61eb75b-668a-4463-9580-b472bacbd749
-	auto_modder = groupbox.rage.toggles:AddToggle("auto_modder_on", {
+	auto_modder = groupbox.rage.toggles:AddToggle("auto_modder_on", {	
 		Text = "Auto Modder",
 		Default = rage.auto_modder,
 		Tooltip = "Modifies your guns to have custom stats. Warning: very janky",

@@ -1,0 +1,2 @@
+TOKEN = 'no'
+WS_PORT = 28561
