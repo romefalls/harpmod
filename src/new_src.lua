@@ -5,6 +5,11 @@
 66330310,10824058593,13994562389,9959698899,14753582362,14753582362,16930850454,14854926827,99611979328492 --idfk?
 7145824116,7145825706,9323462320,11676800530,12581448928,12669543527,13002675302,13479814214,13794250687,14067973844,14124935972 --zaak
 17814441976,109552074033966,18613673779,135872614955430,128593425863840,76612888997160,126205541378879,13206455309,120589223050335,15729409885,11788143966,12965267930,136945645973532,136573284940700,114875031523165
+
+113125855719310,127525655322888,140005051270169,95142529401183,11329982793,12887896690,13755077679,15410138203,76702975182371,80369278035394,83943590095074,6507032568 -- need to find pants
+8329686,5169172334,9795989643,11608391734,12624719830,13206500917,13388666356,13593572933,14753582362 -- lena gave this
+8712093611,8712096002,7394702369,7214160607,4080208424,5765092840,9363116149 -- white?
+1365767,494291269,6239388754,14914986902,15410138203,17106982150,17377789513,18943865303,93476707243800,98635691061608,106678253654168,132807754522097 -- lena too
 ]]
 
 local rage = {
@@ -41,7 +46,7 @@ local killaura_settings = {
 
 local reload_settings = {
 	last_reload_time = 0,
-	reload_delay = 0.1, -- s
+	reload_delay = 0, -- s
 }
 
 local transparency = {
@@ -91,9 +96,10 @@ local math_floor = math.floor
 local math_abs = math.abs
 local math_lerp = math.lerp -- selene and/or the luau lsp don't know that math.lerp has existed for the past 5 months, why the fuck are you guys asleep?
 local string_char = string.char
-
+local coroutine_wrap = coroutine.wrap
 local v3int16 = Vector3int16
-
+local v2 = Vector2.new
+local task_wait = task.wait
 local profile_begin = debug.profilebegin
 local profile_end = debug.profileend
 
@@ -117,7 +123,6 @@ local raycast_params = RaycastParams.new
 local angles = CFrame.fromEulerAngles
 local cframe = CFrame.new
 
-local tracked_items = {}
 
 local killaura_whitelist = {}
 local killaura_blacklist = {}
@@ -179,6 +184,8 @@ local svc = { -- apparently findfirstchildofclass is faster than getservice?
 	ws = find_first_child_of_class(game, "Workspace"),
 }
 
+local camera = ins_get(svc.ws, "CurrentCamera")
+
 local get_players = ins_get(svc.players, "GetPlayers")
 local is_a = ins_get(game, "IsA")
 local raycast = ins_get(svc.ws, "Raycast")
@@ -188,6 +195,7 @@ local get_property_changed_signal = ins_get(game, "GetPropertyChangedSignal")
 local get_children = ins_get(game, "GetChildren")
 local find_first_child = ins_get(game, "FindFirstChild")
 local descendants = ins_get(game, "GetDescendants")
+local world_to_viewport_point = ins_get(camera, "WorldToViewportPoint")
 
 local cf_get = get_metamethod_from_error_stack(cf_0, function(a, b)
 	return a[b]
@@ -355,91 +363,59 @@ local modded_gun = setmetatable({}, {
 	end,
 })
 
-local track_character = function(character)
-	debug_profilebegin("harpmod.track_character")
-	if not character then
-		return
-	end
-	local items = {}
 
-	for _, desc in descendants(character) do
-		if is_a(desc, "Tool") or is_a(desc, "Accessory") then
-			table_insert(items, desc)
-		end
-	end
-
-	tracked_items[character] = items
-
-	local descendant_added_signal = ins_get(character, "DescendantAdded")
-	connect(descendant_added_signal, function(desc)
-		if is_a(desc, "Tool") or is_a(desc, "Accessory") then
-			table_insert(tracked_items[character], desc)
-		end
-	end)
-
-	local ancestry_changed_signal = ins_get(character, "AncestryChanged")
-	connect(ancestry_changed_signal, function(_, parent)
-		if not parent then
-			tracked_items[character] = nil
-		end
-	end)
-	debug_profileend()
+local function world_to_screen(pos)
+	local screen_pos, on_screen = world_to_viewport_point(camera, pos)
+	return v2(screen_pos.X, screen_pos.Y), on_screen
 end
 
-for _, player in get_players(svc.players) do
-	track_character(player.Character)
-	player.CharacterAdded:Connect(track_character)
-end
-
-local draw_ray_line = function(origin, final, color, transparency)
+local function draw_ray_line(origin, final, color, transparency)
 	if not killaura_settings.ray_beam.enabled then
 		return
 	end
 	debug_profilebegin("harpmod.draw_ray_line")
-	coroutine.wrap(function() -- TODO: replace with drawing api
-		local ray_part = instance("Part")
-		ins_set(ray_part, "Anchored", true)
-		ins_set(ray_part, "CanCollide", false)
-		ins_set(ray_part, "CanQuery", false)
-		ins_set(ray_part, "CanTouch", false)
-		ins_set(ray_part, "Material", enum.Material.Neon)
-		ins_set(ray_part, "Color", color)
-		ins_set(ray_part, "Transparency", transparency or 0)
-
-		local direction = final - origin
-		local distance = direction.Magnitude
-		local mid_point = origin + (direction / 2)
-
-		ins_set(ray_part, "Size", vector3(0.1, 0.1, distance))
-		ins_set(ray_part, "CFrame", cframe(mid_point, final))
-		ins_set(ray_part, "Parent", workspace)
-
+	coroutine_wrap(function()
+		local start_2d, on_screen_1 = world_to_screen(origin)
+		local end_2d, on_screen_2 = world_to_screen(final)
+		if not (on_screen_1 and on_screen_2) then
+			return
+		end
+		local line = Drawing.new("Line")
+		line.From = start_2d
+		line.To = end_2d
+		line.Color = color
+		line.Thickness = 2
+		line.Transparency = transparency or 1
+		line.Visible = true
 		if killaura_settings.ray_beam.animated then
 			local duration = 0.5
 			local start_time = os_clock()
-			local size_start = ray_part.Size
-			local size_end = vector3(0, 0, distance)
-			local transparency_start = ray_part.Transparency
-			local transparency_end = 1
 			while true do
 				local now = os_clock()
 				local elapsed = now - start_time
 				local alpha = math_clamp(elapsed / duration, 0, 1)
-				ins_set(ray_part, "Size", v3_lerp(size_start, size_end, alpha))
-				ins_set(ray_part, "Transparency", transparency_start + (transparency_end - transparency_start) * alpha)
+				line.Transparency = (transparency or 1) * (1 - alpha)
 				if alpha >= 1 then
 					break
 				end
-				task.wait()
+				local s, o1 = world_to_screen(origin)
+				local e, o2 = world_to_screen(final)
+				if o1 and o2 then
+					line.From = s
+					line.To = e
+				else
+					break
+				end
+				task_wait()
 			end
 		else
-			task.wait(0.5)
+			task_wait(0.1)
 		end
-		ray_part:Destroy()
+		line:Remove()
 	end)()
+
 	debug_profileend()
 end
-
 local ray_params = raycast_params()
 ray_params.FilterType = enum.RaycastFilterType.Exclude
 ray_params.IgnoreWater = true
@@ -449,13 +425,6 @@ local cast_ray = function(origin, final)
 	debug_profilebegin("setting properties")
 	local exclude = { local_player.Character, workspace.Vehicles }
 	local direction = (final - origin)
-	debug_profilebegin("tracked_items")
-	for _, items in tracked_items do
-		for _, item in items do
-			table_insert(exclude, item)
-		end
-	end
-	debug_profileend()
 	ray_params.FilterDescendantsInstances = exclude
 	debug_profileend()
 	debug_profilebegin("raycast")
@@ -463,7 +432,6 @@ local cast_ray = function(origin, final)
 	debug_profileend()
 	if result then
 		local hit_pos = result.Position
-
 		local distance_to_target = (hit_pos - final).Magnitude
 		if distance_to_target < 2 then
 			draw_ray_line(origin, hit_pos, color.killaura.found_line_of_sight_and_firing)
@@ -546,9 +514,9 @@ local is_gun = function(tool)
 	return true
 end
 
-local target_bounty = function()	
+local target_bounty = function()
 	for _, v in get_players(svc.players) do
-		if v == wait_for_child(svc.players, bounty.target) then
+		if find_first_child(svc.players, bounty.target) then
 			if bounty.silent_target then
 				return
 			end
@@ -557,7 +525,7 @@ local target_bounty = function()
 			local args = {
 				15,
 				v,
-				game:GetService("Players"):WaitForChild(bounty.target),
+				find_first_child(svc.players, bounty.target),
 			}
 			game_event.menu_action:FireServer(unpack(args))
 		else
@@ -713,6 +681,7 @@ local on_heartbeat = {
 							local pos = target.part.Position
 							local hum = find_first_child(target.part.Parent, "Humanoid")
 							if cast_ray(get_pos, pos) then
+								reload_gun(30)
 								for _ = 1, killaura_settings.shoot_amount do
 									shoot_gun(pos.X, pos.Y, pos.Z, hum)
 								end
@@ -733,7 +702,7 @@ local on_heartbeat = {
 	auto_reload = function()
 		if rage.auto_reload == true then
 			debug_profilebegin("harpmod.on_render_stepped.auto_reload")
-			reload_gun(5)
+			reload_gun(10)
 			debug_profileend()
 		end
 	end,
@@ -857,6 +826,20 @@ local groupbox = {
 		processor = tab.gun_modder:AddRightGroupbox("Name & Build"),
 	},
 }
+--[[
+local button = {
+	bounty_targeter = {
+		target = groupbox.bounty_targeter.target:AddButton("target", {
+			Text = "Target player",
+			Tooltip = "Hires everyone in the server.",
+			Func = function()
+				target_bounty()
+			end,
+			[[
+		}),
+	},
+}
+]]
 local slider = {
 	killaura = {
 		range = groupbox.killaura.sliders:AddSlider("killaura_range", {
@@ -951,7 +934,7 @@ local toggle = {
 		Default = rage.auto_reload,
 		Tooltip = "Auto Reload will reload any gun that you hold instantly.",
 	}), -- un PargbmGagoK7I($Vt4$Ohj@V7YS5X8%B HI_b61eb75b-668a-4463-9580-b472bacbd749
-	auto_modder = groupbox.rage.toggles:AddToggle("auto_modder_on", {	
+	auto_modder = groupbox.rage.toggles:AddToggle("auto_modder_on", {
 		Text = "Auto Modder",
 		Default = rage.auto_modder,
 		Tooltip = "Modifies your guns to have custom stats. Warning: very janky",

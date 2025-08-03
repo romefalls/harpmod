@@ -13,9 +13,9 @@ return function(_, p1) --[[Anonymous function at line 11]]
     local _ = _G
     local game = game
     local _ = script
-    local v4 = getfenv
+    local getfenv = getfenv
     local _ = setfenv
-    local u5 = workspace
+    local workspace = workspace
     local v6 = getmetatable
     local v7 = setmetatable
     local _ = loadstring
@@ -24,7 +24,7 @@ return function(_, p1) --[[Anonymous function at line 11]]
     local _ = typeof
     local _ = print
     local _ = math
-    local u10 = warn
+    local warn = warn
     local _ = error
     local pcall = pcall
     local u12 = xpcall
@@ -91,9 +91,9 @@ return function(_, p1) --[[Anonymous function at line 11]]
     if u40 then
         u40 = not u26.UserInputService.MouseEnabled
     end
-    v4().client = nil
-    v4().service = nil
-    v4().script = nil
+    getfenv().client = nil
+    getfenv().service = nil
+    getfenv().script = nil
     local function u44(p41, p42, p43) --[[Anonymous function at line 81]]
         --[[
         Upvalues:
@@ -641,7 +641,7 @@ return function(_, p1) --[[Anonymous function at line 11]]
                 end)
                 if v128 or (v129 ~= "Expected \':\' not \'.\' calling member function Kick" or (v130 or (u15.match(v131, "^Kick is not a valid member of Workspace \"(.+)\"$") or "") ~= u127:GetFullName())) then
                     u44("kick", "Anti kick found! Method 0x3")
-                    u10(v128, v129, "|", v130, v131)
+                    warnv128, v129, "|", v130, v131)
                 end
                 if #u26.Players:GetPlayers() > 1 then
                     local v132 = u26.Players
@@ -658,7 +658,7 @@ return function(_, p1) --[[Anonymous function at line 11]]
                             end)
                             if v135 or (v136 ~= "Cannot kick a non-local Player from a LocalScript" or (v137 or v138 ~= "Cannot kick a non-local Player from a LocalScript")) then
                                 u44("kick", "Anti kick found! Method 0x6")
-                                u10(v135, v136, "|", v137, v138)
+                                warn(v135, v136, "|", v137, v138)
                             end
                         end
                     end
