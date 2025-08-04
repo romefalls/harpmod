@@ -711,9 +711,9 @@ connect(workspace.DescendantAdded, function(descendant)
 			end
 		end
 	elseif descendant:IsA("TextLabel") and descendant.Name == "TextLabel" then
-		local nameTag = descendant.Parent
-		if nameTag and nameTag.Name == "NameTag" then
-			local char = nameTag.Parent
+		local name_tag = descendant.Parent
+		if name_tag and name_tag.Name == "NameTag" then
+			local char = name_tag.Parent
 			for _, player in get_players(svc.players) do
 				if char == player.Character then
 					connect_label(player, descendant)
