@@ -578,9 +578,13 @@ local function update_player_name_color(player)
 		name_color_cache[player] = name_color.white
 	end
 end
-
-local function connect_label(player, label)
-	local text_label = label and find_first_child(label, "TextLabel")
+local function connect_label(player, obj)
+	local text_label
+	if obj:IsA("TextLabel") then -- TODO: use the metamethod instead
+		text_label = obj
+	else
+		text_label = find_first_child(obj, "TextLabel")
+	end
 	if text_label then
 		name_color_cache[player] = text_label.TextColor3
 		if color_conn_table[text_label] then
@@ -596,7 +600,11 @@ end
 
 local function setup_name_color_listener(player)
 	local function on_nametag(label)
-		connect_label(player, label)
+		for _, child in get_children(label) do
+			if child.Name == "TextLabel" then
+				connect_label(player, child)
+			end
+		end
 		connect(label.ChildAdded, function(child)
 			if child.Name == "TextLabel" then
 				connect_label(player, child)
@@ -605,15 +613,17 @@ local function setup_name_color_listener(player)
 	end
 
 	local function on_character(char)
-		local label = find_first_child(char, "NameTag")
-		if label then
-			on_nametag(label)
+		for _, child in get_children(char) do
+			if child.Name == "NameTag" then
+				on_nametag(child)
+			end
 		end
 		connect(char.ChildAdded, function(child)
 			if child.Name == "NameTag" then
 				on_nametag(child)
 			end
 		end)
+		update_player_name_color(player)
 	end
 
 	if player.Character then
@@ -691,6 +701,27 @@ local function get_player_name_key(player)
 	end
 	return "white"
 end
+
+connect(workspace.DescendantAdded, function(descendant)
+	if descendant.Name == "NameTag" then
+		local char = descendant.Parent
+		for _, player in get_players(svc.players) do
+			if char == player.Character then
+				on_nametag(descendant)
+			end
+		end
+	elseif descendant:IsA("TextLabel") and descendant.Name == "TextLabel" then
+		local nameTag = descendant.Parent
+		if nameTag and nameTag.Name == "NameTag" then
+			local char = nameTag.Parent
+			for _, player in get_players(svc.players) do
+				if char == player.Character then
+					connect_label(player, descendant)
+				end
+			end
+		end
+	end
+end)
 
 local killaura_func = {
 	get_nearby_targets = function()
