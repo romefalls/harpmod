@@ -189,6 +189,8 @@ local get_players = ins_get(svc.players, "GetPlayers")
 local is_a = ins_get(game, "IsA")
 local raycast = ins_get(svc.ws, "Raycast")
 local heartbeat = ins_get(svc.run, "Heartbeat")
+local render_stepped = ins_get(svc.run, "RenderStepped")
+local wait_for_render_stepped = ins_get(render_stepped,"Wait")
 local connect = heartbeat.Connect
 local get_property_changed_signal = ins_get(game, "GetPropertyChangedSignal")
 local get_children = ins_get(game, "GetChildren")
@@ -430,7 +432,7 @@ task.spawn(function()
 				table_remove(active_lines, i)
 			end
 		end
-		task.wait() -- should really turn this into an svc.rs.renderstepped:wait() but meh
+		wait_for_render_stepped()
 	end
 end)
 local ray_params = raycast_params()
@@ -580,7 +582,7 @@ local function update_player_name_color(player)
 end
 local function connect_label(player, obj)
 	local text_label
-	if obj:IsA("TextLabel") then -- TODO: use the metamethod instead
+	if is_a(obj,"TextLabel") then -- TODO: use the metamethod instead
 		text_label = obj
 	else
 		text_label = find_first_child(obj, "TextLabel")
@@ -710,7 +712,7 @@ connect(workspace.DescendantAdded, function(descendant)
 				on_nametag(descendant)
 			end
 		end
-	elseif descendant:IsA("TextLabel") and descendant.Name == "TextLabel" then
+	elseif is_a(descendant,"TextLabel") and descendant.Name == "TextLabel" then
 		local name_tag = descendant.Parent
 		if name_tag and name_tag.Name == "NameTag" then
 			local char = name_tag.Parent
