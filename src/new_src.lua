@@ -42,6 +42,7 @@ local killaura_settings = {
 	shoot_delay = 0.045,
 	last_target_index = 1,
 	shoot_amount = 5,
+	multi_target = false,
 }
 
 local reload_settings = {
@@ -138,12 +139,7 @@ local random_string = function()
 	return s
 end
 
-local get_metamethod_from_error_stack = function(userdata, f, test) --[[
-		full disclosure:
-		i dont know what the fuck this does
-		this is probably elite roblox knowledge,
-		for those uninitiated, this is like reading c after thousands of years of using lua
-	]]
+local get_metamethod_from_error_stack = function(userdata, f, test)
 	local ret = nil
 	xpcall(f, function()
 		ret = debug.info(2, "f")
@@ -174,7 +170,7 @@ end)
 
 local find_first_child_of_class = ins_get(game, "FindFirstChildOfClass")
 
-local svc = { -- apparently findfirstchildofclass is faster than getservice?
+local svc = {
 	players = find_first_child_of_class(game, "Players"),
 	rs = find_first_child_of_class(game, "ReplicatedStorage"),
 	debris = find_first_child_of_class(game, "Debris"),
@@ -232,8 +228,11 @@ end
 
 local local_player = ins_get(svc.players, "LocalPlayer")
 
+local note = game_instance.events.Note
+
 local game_instance = {
 	events = svc.rs.Events,
+	player_data = local_player.PlayerData,
 }
 
 local game_event = {
@@ -250,9 +249,6 @@ local color = {
 		no_result_was_found = color3(100, 100, 100),
 	},
 }
-
-local player_data = local_player.PlayerData
-local note = game_instance.events.Note
 
 local ammo_type = {
 	heavy = "Heavy Ammo",
@@ -583,7 +579,7 @@ local update_player_name_color = function(player)
 end
 local connect_label = function(player, obj)
 	local text_label
-	if is_a(obj,"TextLabel") then
+	if is_a(obj, "TextLabel") then
 		text_label = obj
 	else
 		text_label = find_first_child(obj, "TextLabel")
@@ -713,7 +709,7 @@ connect(workspace.DescendantAdded, function(descendant)
 				on_nametag(descendant)
 			end
 		end
-	elseif is_a(descendant,"TextLabel") and descendant.Name == "TextLabel" then
+	elseif is_a(descendant, "TextLabel") and descendant.Name == "TextLabel" then
 		local name_tag = descendant.Parent
 		if name_tag and name_tag.Name == "NameTag" then
 			local char = name_tag.Parent
@@ -838,7 +834,7 @@ local on_heartbeat = {
 					local targets = killaura_func.get_nearby_targets()
 					if #targets > 0 then
 						local total_targets = #targets
-						for _ = 1, total_targets do
+						for i = 1, total_targets do
 							killaura_settings.last_target_index = killaura_settings.last_target_index + 1
 							if killaura_settings.last_target_index > total_targets then
 								killaura_settings.last_target_index = 1
@@ -851,7 +847,9 @@ local on_heartbeat = {
 								for _ = 1, killaura_settings.shoot_amount do
 									shoot_gun(pos.X, pos.Y, pos.Z, hum)
 								end
-								break
+								if not killaura_multi_target then
+									break
+								end
 							end
 						end
 					end
@@ -903,7 +901,7 @@ local on_heartbeat = {
 }
 
 for _, ammo_name in ammo_type do
-	local ammo_stat = find_first_child(player_data, ammo_name)
+	local ammo_stat = find_first_child(game_instance.player_data, ammo_name)
 	connect(get_property_changed_signal(ammo_stat, "Value"), function()
 		if legit.autobuy == true then
 			debug_profilebegin("harpmod.auto_buy")
@@ -1006,7 +1004,7 @@ local button = {
 	},
 }
 ]]
-local slider = {
+local slider = { -- i know this says slider, but i dont care anymore
 	killaura = {
 		range = groupbox.killaura.sliders:AddSlider("killaura_range", {
 			Text = "Range",
@@ -1032,20 +1030,15 @@ local slider = {
 			Default = killaura_settings.shoot_amount,
 			Min = 1,
 			Max = 50,
-			Rounding = 0, -- fuck if i know how the rounding works in linoria
+			Rounding = 0,
 			Compact = false,
 		}),
-		-- fuck this
-		lab = groupbox.killaura.sliders:AddLabel(
-			[[
-		At 120 FPS, targeting a single player,
-		killaura will execute 120 * Amount attacks per second.
-		This occurs regardless of server-side conditions,
-		including weapon type restrictions (e.g. Remington, Bfist).
-		If Amount is set to 2 it'll fire 240 times per second.
-	]],
-			true
-		),
+		multi_target = groupbox.killaura.bools:AddToggle("killaura_multi_target", {
+			Text = "Multi-Target",
+			Default = false,
+			Tooltip = "If on, killaura will shoot all valid targets at once.",
+		}),
+		lab = groupbox.killaura.sliders:AddLabel('You can get most out of the killaura by having rems or bfists.\nBoth will fire instantly, because the game skips time checks for both. Otherwise leave everything as is.',true),
 	},
 	bounty_targeter = {
 		max_price = groupbox.bounty_targeter.stats:AddSlider("max_price", {
@@ -1212,6 +1205,10 @@ end)
 
 toggle.bounty_targeter_silent_target:OnChanged(function()
 	bounty.silent_target = toggle.bounty_targeter_silent_target.Value
+end)
+
+slider.multi_target:OnChanged(function()
+	killaura_settings.multi_target = toggle.multi_target.Value
 end)
 
 note:Fire("success", "ran successfully", 5)
