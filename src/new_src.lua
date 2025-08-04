@@ -477,22 +477,6 @@ local name_color = {
 	government = color3(112, 186, 255),
 }
 
-local get_player_name_color = function(player)
-	local label = player.Character
-		and find_first_child(player.Character, "NameTag")
-		and find_first_child(player.Character.NameTag, "TextLabel")
-	return (label and label.TextColor3) or name_color.white
-end
-
-local get_player_name_key = function(player)
-	local col = get_player_name_color(player)
-	for key, color_val in name_color do
-		if color_val == col then
-			return key
-		end
-	end
-	return "white"
-end
 
 for gun_name, data in modded_gun do
 	data.ammo_type = get_ammo_type(gun_name)
@@ -560,62 +544,198 @@ local modify_gun = function(old_gun, new_gun_name, ammo_type, gun_sound, spread,
 		note:Fire("Done!", "Modding is done. Equip your " .. new_gun_name .. " now", 5)
 	end
 end
+local player_cache = {}
+local char_cache = {}
+local hrp_cache = {}
+local name_color_cache = {}
+
+local update_player_name_color = function(player)
+    local char = char_cache[player]
+    local label = char and find_first_child(char, "NameTag")
+    local textLabel = label and find_first_child(label, "TextLabel")
+    if textLabel then
+        name_color_cache[player] = textLabel.TextColor3
+        if not textLabel:GetAttribute("ColorListenerSet") then
+            textLabel.Changed:Connect(function(prop)
+                if prop == "TextColor3" then
+                    name_color_cache[player] = textLabel.TextColor3
+                end
+            end)
+            textLabel:SetAttribute("ColorListenerSet", true)
+        end
+    else
+        name_color_cache[player] = name_color.white
+    end
+end
+
+local function setup_name_color_listener(player)
+    local function connect_label(label)
+        local textLabel = label and find_first_child(label, "TextLabel")
+        if textLabel then
+            name_color_cache[player] = textLabel.TextColor3
+            textLabel:GetPropertyChangedSignal("TextColor3"):Connect(function()
+                name_color_cache[player] = textLabel.TextColor3
+            end)
+        else
+            name_color_cache[player] = name_color.white
+        end
+    end
+
+    local function on_character(char)
+        local label = find_first_child(char, "NameTag")
+        if label then
+            connect_label(label)
+            label.ChildAdded:Connect(function(child)
+                if child.Name == "TextLabel" then
+                    connect_label(child)
+                end
+            end)
+        else
+            name_color_cache[player] = name_color.white
+            char.ChildAdded:Connect(function(child)
+                if child.Name == "NameTag" then
+                    connect_label(child)
+                    child.ChildAdded:Connect(function(grandchild)
+                        if grandchild.Name == "TextLabel" then
+                            connect_label(grandchild)
+                        end
+                    end)
+                end
+            end)
+        end
+    end
+
+    if player.Character then
+        on_character(player.Character)
+    end
+    player.CharacterAdded:Connect(on_character)
+end
+
+for _, player in player_cache do
+    setup_name_color_listener(player)
+end
+
+svc.players.PlayerAdded:Connect(function(player)
+    table.insert(player_cache, player)
+    update_char_and_hrp(player)
+    setup_name_color_listener(player)
+end)
+
+local function update_char_and_hrp(player)
+    local char = ins_get(player, "Character")
+    char_cache[player] = char
+    if char then
+        hrp_cache[player] = find_first_child(char, "HumanoidRootPart")
+    else
+        hrp_cache[player] = nil
+    end
+    update_player_name_color(player)
+end
+
+local function update_all_caches()
+    player_cache = get_players(svc.players)
+    for _, player in player_cache do
+        update_char_and_hrp(player)
+    end
+end
+
+update_all_caches()
+
+svc.players.PlayerAdded:Connect(function(player)
+    table.insert(player_cache, player)
+    update_char_and_hrp(player)
+    player.CharacterAdded:Connect(function()
+        update_char_and_hrp(player)
+    end)
+end)
+
+svc.players.PlayerRemoving:Connect(function(player)
+    for i, p in player_cache do
+        if p == player then
+            table.remove(player_cache, i)
+            break
+        end
+    end
+    char_cache[player] = nil
+    hrp_cache[player] = nil
+end)
+
+for _, player in player_cache do
+    player.CharacterAdded:Connect(function()
+        update_char_and_hrp(player)
+    end)
+end
+
+local function get_player_name_color(player)
+    return name_color_cache[player] or name_color.white
+end
+
+local get_player_name_key = function(player)
+	local col = get_player_name_color(player)
+	for key, color_val in name_color do
+		if color_val == col then
+			return key
+		end
+	end
+	return "white"
+end
+
 
 local killaura_func = {
-	get_nearby_targets = function()
-		debug_profilebegin("harpmod.killaura_func.get_nearby_targets")
-		debug_profilebegin("check local_char_and_hrp")
-		local my_char = ins_get(local_player, "Character")
-		if not my_char then
-			return {}
-		end
-		local my_hrp = find_first_child(my_char, "HumanoidRootPart")
-		if not my_hrp then
-			return {}
-		end
-		debug_profileend()
-		local targets = {}
-		for _, player in get_players(svc.players) do
-			debug_profilebegin("player_" .. player.Name)
-			if player == local_player then
-				debug_profileend()
-				continue
-			end
-			local player_char = ins_get(player, "Character")
-			if not player_char then
-				debug_profileend()
-				continue
-			end
-			local hrp = find_first_child(player_char, "HumanoidRootPart")
-			if not hrp then
-				debug_profileend()
-				continue
-			end
-			if killaura_whitelist[player.Name] then
-				debug_profileend()
-				continue
-			end
-			debug_profilebegin("check name")
-			local name_key = get_player_name_key(player)
-			local is_allowed_color = killaura_settings.target[name_key .. "_names"]
-			debug_profileend()
-			if not is_allowed_color then
-				debug_profileend()
-				continue
-			end
-			if #killaura_blacklist > 0 and not table_find(killaura_blacklist, player.Name) then
-				debug_profileend()
-				continue
-			end
-			local dist = (hrp.Position - my_hrp.Position).Magnitude
-			if dist < killaura_settings.radius then
-				table_insert(targets, { player = player, part = hrp })
-			end
-			debug_profileend()
-		end
-		debug_profileend()
-		return targets
-	end,
+    get_nearby_targets = function()
+        debug_profilebegin("harpmod.killaura_func.get_nearby_targets")
+        debug_profilebegin("check local_char_and_hrp")
+        local my_char = char_cache[local_player]
+        if not my_char then
+            return {}
+        end
+        local my_hrp = hrp_cache[local_player]
+        if not my_hrp then
+            return {}
+        end
+        debug_profileend()
+        local targets = {}
+        for _, player in player_cache do
+            debug_profilebegin("player_" .. player.Name)
+            if player == local_player then
+                debug_profileend()
+                continue
+            end
+            local player_char = char_cache[player]
+            if not player_char then
+                debug_profileend()
+                continue
+            end
+            local hrp = hrp_cache[player]
+            if not hrp then
+                debug_profileend()
+                continue
+            end
+            if killaura_whitelist[player.Name] then
+                debug_profileend()
+                continue
+            end
+            debug_profilebegin("check name")
+            local name_key = get_player_name_key(player)
+            local is_allowed_color = killaura_settings.target[name_key .. "_names"]
+            debug_profileend()
+            if not is_allowed_color then
+                debug_profileend()
+                continue
+            end
+            if #killaura_blacklist > 0 and not table_find(killaura_blacklist, player.Name) then
+                debug_profileend()
+                continue
+            end
+            local dist = (hrp.Position - my_hrp.Position).Magnitude
+            if dist < killaura_settings.radius then
+                table_insert(targets, { player = player, part = hrp })
+            end
+            debug_profileend()
+        end
+        debug_profileend()
+        return targets
+    end,
 }
 
 local shoot_gun = function(x, y, z, humanoid)

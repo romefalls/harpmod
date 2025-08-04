@@ -1,0 +1,1 @@
+print(game:GetService("Players").glowahh.PlayerData.PlayTime.Value)
