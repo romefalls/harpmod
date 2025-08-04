@@ -42,6 +42,7 @@ local killaura_settings = {
 	shoot_delay = 0.045,
 	last_target_index = 1,
 	shoot_amount = 5,
+	multi_target = false,
 }
 
 local reload_settings = {
@@ -138,12 +139,7 @@ local random_string = function()
 	return s
 end
 
-local get_metamethod_from_error_stack = function(userdata, f, test) --[[
-		full disclosure:
-		i dont know what the fuck this does
-		this is probably elite roblox knowledge,
-		for those uninitiated, this is like reading c after thousands of years of using lua
-	]]
+local get_metamethod_from_error_stack = function(userdata, f, test)
 	local ret = nil
 	xpcall(f, function()
 		ret = debug.info(2, "f")
@@ -174,7 +170,7 @@ end)
 
 local find_first_child_of_class = ins_get(game, "FindFirstChildOfClass")
 
-local svc = { -- apparently findfirstchildofclass is faster than getservice?
+local svc = {
 	players = find_first_child_of_class(game, "Players"),
 	rs = find_first_child_of_class(game, "ReplicatedStorage"),
 	debris = find_first_child_of_class(game, "Debris"),
@@ -189,6 +185,7 @@ local get_players = ins_get(svc.players, "GetPlayers")
 local is_a = ins_get(game, "IsA")
 local raycast = ins_get(svc.ws, "Raycast")
 local heartbeat = ins_get(svc.run, "Heartbeat")
+local render_stepped = ins_get(svc.run, "RenderStepped")
 local connect = heartbeat.Connect
 local get_property_changed_signal = ins_get(game, "GetPropertyChangedSignal")
 local get_children = ins_get(game, "GetChildren")
@@ -231,8 +228,11 @@ end
 
 local local_player = ins_get(svc.players, "LocalPlayer")
 
+local note = game_instance.events.Note
+
 local game_instance = {
 	events = svc.rs.Events,
+	player_data = local_player.PlayerData,
 }
 
 local game_event = {
@@ -249,9 +249,6 @@ local color = {
 		no_result_was_found = color3(100, 100, 100),
 	},
 }
-
-local player_data = local_player.PlayerData
-local note = game_instance.events.Note
 
 local ammo_type = {
 	heavy = "Heavy Ammo",
@@ -362,26 +359,28 @@ local modded_gun = setmetatable({}, {
 	end,
 })
 
-local function world_to_screen(pos)
+local world_to_screen = function(pos)
 	local screen_pos, on_screen = world_to_viewport_point(camera, pos)
 	return v2(screen_pos.X, screen_pos.Y), on_screen
 end
 
 local active_lines = {}
 
-local function draw_ray_line(origin, final, color, transparency)
+local draw_ray_line = function(origin, final, color, transparency)
 	if not killaura_settings.ray_beam.enabled then
 		return
 	end
 	debug_profilebegin("harpmod.draw_ray_line")
-
+	debug_profilebegin("check if_on_screen")
 	local start_2d, on_screen_1 = world_to_screen(origin)
 	local end_2d, on_screen_2 = world_to_screen(final)
+	debug_profileend()
 	if not (on_screen_1 and on_screen_2) then
 		debug_profileend()
 		return
 	end
 
+	debug_profilebegin("line create_and_set")
 	local line = Drawing.new("Line")
 	line.From = start_2d
 	line.To = end_2d
@@ -389,11 +388,11 @@ local function draw_ray_line(origin, final, color, transparency)
 	line.Thickness = 2
 	line.Transparency = transparency or 1
 	line.Visible = true
-
+	debug_profileend()
 	local duration = killaura_settings.ray_beam.animated and 0.5 or 0.1
 	local start_time = os_clock()
-
-	table.insert(active_lines, {
+	debug_profilebegin("line table_insertion")
+	table_insert(active_lines, {
 		line = line,
 		origin = origin,
 		final = final,
@@ -403,7 +402,7 @@ local function draw_ray_line(origin, final, color, transparency)
 		duration = duration,
 		animated = killaura_settings.ray_beam.animated,
 	})
-
+	debug_profileend()
 	debug_profileend()
 end
 
@@ -430,7 +429,7 @@ task.spawn(function()
 				table_remove(active_lines, i)
 			end
 		end
-		task.wait() -- should really turn this into an svc.rs.renderstepped:wait() but meh
+		render_stepped:Wait()
 	end
 end)
 local ray_params = raycast_params()
@@ -568,7 +567,7 @@ local name_color_cache = {}
 
 local color_conn_table = setmetatable({}, { __mode = "k" }) -- weak keys
 
-local function update_player_name_color(player)
+local update_player_name_color = function(player)
 	local char = char_cache[player]
 	local label = char and find_first_child(char, "NameTag")
 	local text_label = label and find_first_child(label, "TextLabel")
@@ -578,9 +577,13 @@ local function update_player_name_color(player)
 		name_color_cache[player] = name_color.white
 	end
 end
-
-local function connect_label(player, label)
-	local text_label = label and find_first_child(label, "TextLabel")
+local connect_label = function(player, obj)
+	local text_label
+	if is_a(obj, "TextLabel") then
+		text_label = obj
+	else
+		text_label = find_first_child(obj, "TextLabel")
+	end
 	if text_label then
 		name_color_cache[player] = text_label.TextColor3
 		if color_conn_table[text_label] then
@@ -594,9 +597,13 @@ local function connect_label(player, label)
 	end
 end
 
-local function setup_name_color_listener(player)
-	local function on_nametag(label)
-		connect_label(player, label)
+local setup_name_color_listener = function(player)
+	local on_nametag = function(label)
+		for _, child in get_children(label) do
+			if child.Name == "TextLabel" then
+				connect_label(player, child)
+			end
+		end
 		connect(label.ChildAdded, function(child)
 			if child.Name == "TextLabel" then
 				connect_label(player, child)
@@ -604,16 +611,18 @@ local function setup_name_color_listener(player)
 		end)
 	end
 
-	local function on_character(char)
-		local label = find_first_child(char, "NameTag")
-		if label then
-			on_nametag(label)
+	local on_character = function(char)
+		for _, child in get_children(char) do
+			if child.Name == "NameTag" then
+				on_nametag(child)
+			end
 		end
 		connect(char.ChildAdded, function(child)
 			if child.Name == "NameTag" then
 				on_nametag(child)
 			end
 		end)
+		update_player_name_color(player)
 	end
 
 	if player.Character then
@@ -622,7 +631,7 @@ local function setup_name_color_listener(player)
 	connect(player.CharacterAdded, on_character)
 end
 
-local function update_char_and_hrp(player)
+local update_char_and_hrp = function(player)
 	local char = ins_get(player, "Character")
 	char_cache[player] = char
 	if char then
@@ -641,7 +650,7 @@ local function update_char_and_hrp(player)
 	update_player_name_color(player)
 end
 
-local function update_all_caches()
+local update_all_caches = function()
 	player_cache = get_players(svc.players)
 	for _, player in player_cache do
 		update_char_and_hrp(player)
@@ -678,11 +687,11 @@ connect(svc.players.PlayerRemoving, function(player)
 	name_color_cache[player] = nil
 end)
 
-local function get_player_name_color(player)
+local get_player_name_color = function(player)
 	return name_color_cache[player] or name_color.white
 end
 
-local function get_player_name_key(player)
+local get_player_name_key = function(player)
 	local col = get_player_name_color(player)
 	for key, color_val in name_color do
 		if color_val == col then
@@ -691,6 +700,27 @@ local function get_player_name_key(player)
 	end
 	return "white"
 end
+
+connect(workspace.DescendantAdded, function(descendant)
+	if descendant.Name == "NameTag" then
+		local char = descendant.Parent
+		for _, player in get_players(svc.players) do
+			if char == player.Character then
+				on_nametag(descendant)
+			end
+		end
+	elseif is_a(descendant, "TextLabel") and descendant.Name == "TextLabel" then
+		local name_tag = descendant.Parent
+		if name_tag and name_tag.Name == "NameTag" then
+			local char = name_tag.Parent
+			for _, player in get_players(svc.players) do
+				if char == player.Character then
+					connect_label(player, descendant)
+				end
+			end
+		end
+	end
+end)
 
 local killaura_func = {
 	get_nearby_targets = function()
@@ -804,7 +834,7 @@ local on_heartbeat = {
 					local targets = killaura_func.get_nearby_targets()
 					if #targets > 0 then
 						local total_targets = #targets
-						for _ = 1, total_targets do
+						for i = 1, total_targets do
 							killaura_settings.last_target_index = killaura_settings.last_target_index + 1
 							if killaura_settings.last_target_index > total_targets then
 								killaura_settings.last_target_index = 1
@@ -817,7 +847,9 @@ local on_heartbeat = {
 								for _ = 1, killaura_settings.shoot_amount do
 									shoot_gun(pos.X, pos.Y, pos.Z, hum)
 								end
-								break
+								if not killaura_multi_target then
+									break
+								end
 							end
 						end
 					end
@@ -869,7 +901,7 @@ local on_heartbeat = {
 }
 
 for _, ammo_name in ammo_type do
-	local ammo_stat = find_first_child(player_data, ammo_name)
+	local ammo_stat = find_first_child(game_instance.player_data, ammo_name)
 	connect(get_property_changed_signal(ammo_stat, "Value"), function()
 		if legit.autobuy == true then
 			debug_profilebegin("harpmod.auto_buy")
@@ -972,7 +1004,7 @@ local button = {
 	},
 }
 ]]
-local slider = {
+local slider = { -- i know this says slider, but i dont care anymore
 	killaura = {
 		range = groupbox.killaura.sliders:AddSlider("killaura_range", {
 			Text = "Range",
@@ -998,20 +1030,15 @@ local slider = {
 			Default = killaura_settings.shoot_amount,
 			Min = 1,
 			Max = 50,
-			Rounding = 0, -- fuck if i know how the rounding works in linoria
+			Rounding = 0,
 			Compact = false,
 		}),
-		-- fuck this
-		lab = groupbox.killaura.sliders:AddLabel(
-			[[
-		At 120 FPS, targeting a single player,
-		killaura will execute 120 * Amount attacks per second.
-		This occurs regardless of server-side conditions,
-		including weapon type restrictions (e.g. Remington, Bfist).
-		If Amount is set to 2 it'll fire 240 times per second.
-	]],
-			true
-		),
+		multi_target = groupbox.killaura.bools:AddToggle("killaura_multi_target", {
+			Text = "Multi-Target",
+			Default = false,
+			Tooltip = "If on, killaura will shoot all valid targets at once.",
+		}),
+		lab = groupbox.killaura.sliders:AddLabel('You can get most out of the killaura by having rems or bfists.\nBoth will fire instantly, because the game skips time checks for both. Otherwise leave everything as is.',true),
 	},
 	bounty_targeter = {
 		max_price = groupbox.bounty_targeter.stats:AddSlider("max_price", {
@@ -1178,6 +1205,10 @@ end)
 
 toggle.bounty_targeter_silent_target:OnChanged(function()
 	bounty.silent_target = toggle.bounty_targeter_silent_target.Value
+end)
+
+slider.multi_target:OnChanged(function()
+	killaura_settings.multi_target = toggle.multi_target.Value
 end)
 
 note:Fire("success", "ran successfully", 5)
