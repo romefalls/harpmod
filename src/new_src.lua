@@ -77,8 +77,8 @@ local ui = {
 local profiling_enabled = true
 
 local task_spawn = task.spawn
-local _task_wait = task.wait
 local table_insert = table.insert
+local table_remove = table.remove
 local table_find = table.find
 
 local next = next
@@ -122,7 +122,6 @@ local enum = Enum
 local raycast_params = RaycastParams.new
 local angles = CFrame.fromEulerAngles
 local cframe = CFrame.new
-
 
 local killaura_whitelist = {}
 local killaura_blacklist = {}
@@ -363,59 +362,77 @@ local modded_gun = setmetatable({}, {
 	end,
 })
 
-
 local function world_to_screen(pos)
 	local screen_pos, on_screen = world_to_viewport_point(camera, pos)
 	return v2(screen_pos.X, screen_pos.Y), on_screen
 end
+
+local active_lines = {}
 
 local function draw_ray_line(origin, final, color, transparency)
 	if not killaura_settings.ray_beam.enabled then
 		return
 	end
 	debug_profilebegin("harpmod.draw_ray_line")
-	coroutine_wrap(function()
-		local start_2d, on_screen_1 = world_to_screen(origin)
-		local end_2d, on_screen_2 = world_to_screen(final)
-		if not (on_screen_1 and on_screen_2) then
-			return
-		end
-		local line = Drawing.new("Line")
-		line.From = start_2d
-		line.To = end_2d
-		line.Color = color
-		line.Thickness = 2
-		line.Transparency = transparency or 1
-		line.Visible = true
-		if killaura_settings.ray_beam.animated then
-			local duration = 0.5
-			local start_time = os_clock()
-			while true do
-				local now = os_clock()
-				local elapsed = now - start_time
-				local alpha = math_clamp(elapsed / duration, 0, 1)
-				line.Transparency = (transparency or 1) * (1 - alpha)
-				if alpha >= 1 then
-					break
-				end
-				local s, o1 = world_to_screen(origin)
-				local e, o2 = world_to_screen(final)
-				if o1 and o2 then
-					line.From = s
-					line.To = e
-				else
-					break
-				end
-				task_wait()
-			end
-		else
-			task_wait(0.1)
-		end
-		line:Remove()
-	end)()
+
+	local start_2d, on_screen_1 = world_to_screen(origin)
+	local end_2d, on_screen_2 = world_to_screen(final)
+	if not (on_screen_1 and on_screen_2) then
+		debug_profileend()
+		return
+	end
+
+	local line = Drawing.new("Line")
+	line.From = start_2d
+	line.To = end_2d
+	line.Color = color
+	line.Thickness = 2
+	line.Transparency = transparency or 1
+	line.Visible = true
+
+	local duration = killaura_settings.ray_beam.animated and 0.5 or 0.1
+	local start_time = os_clock()
+
+	table.insert(active_lines, {
+		line = line,
+		origin = origin,
+		final = final,
+		transparency = transparency or 1,
+		color = color,
+		start_time = start_time,
+		duration = duration,
+		animated = killaura_settings.ray_beam.animated,
+	})
 
 	debug_profileend()
 end
+
+task.spawn(function()
+	while true do
+		local now = os_clock()
+		for i = #active_lines, 1, -1 do
+			local data = active_lines[i]
+			local elapsed = now - data.start_time
+			local alpha = math_clamp(elapsed / data.duration, 0, 1)
+			if data.animated then
+				data.line.Transparency = data.transparency * (1 - alpha)
+			end
+			local s, o1 = world_to_screen(data.origin)
+			local e, o2 = world_to_screen(data.final)
+			if o1 and o2 then
+				data.line.From = s
+				data.line.To = e
+			else
+				alpha = 1
+			end
+			if alpha >= 1 then
+				data.line:Remove()
+				table_remove(active_lines, i)
+			end
+		end
+		task.wait() -- should really turn this into an svc.rs.renderstepped:wait() but meh
+	end
+end)
 local ray_params = raycast_params()
 ray_params.FilterType = enum.RaycastFilterType.Exclude
 ray_params.IgnoreWater = true
@@ -476,23 +493,6 @@ local name_color = {
 	red = color3(255, 33, 33),
 	government = color3(112, 186, 255),
 }
-
-local get_player_name_color = function(player)
-	local label = player.Character
-		and find_first_child(player.Character, "NameTag")
-		and find_first_child(player.Character.NameTag, "TextLabel")
-	return (label and label.TextColor3) or name_color.white
-end
-
-local get_player_name_key = function(player)
-	local col = get_player_name_color(player)
-	for key, color_val in name_color do
-		if color_val == col then
-			return key
-		end
-	end
-	return "white"
-end
 
 for gun_name, data in modded_gun do
 	data.ammo_type = get_ammo_type(gun_name)
@@ -561,37 +561,169 @@ local modify_gun = function(old_gun, new_gun_name, ammo_type, gun_sound, spread,
 	end
 end
 
+local player_cache = {}
+local char_cache = {}
+local hrp_cache = {}
+local name_color_cache = {}
+
+local color_conn_table = setmetatable({}, { __mode = "k" }) -- weak keys
+
+local function update_player_name_color(player)
+	local char = char_cache[player]
+	local label = char and find_first_child(char, "NameTag")
+	local text_label = label and find_first_child(label, "TextLabel")
+	if text_label then
+		name_color_cache[player] = text_label.TextColor3
+	else
+		name_color_cache[player] = name_color.white
+	end
+end
+
+local function connect_label(player, label)
+	local text_label = label and find_first_child(label, "TextLabel")
+	if text_label then
+		name_color_cache[player] = text_label.TextColor3
+		if color_conn_table[text_label] then
+			color_conn_table[text_label]:Disconnect()
+		end
+		color_conn_table[text_label] = connect(get_property_changed_signal(text_label, "TextColor3"), function()
+			name_color_cache[player] = text_label.TextColor3
+		end)
+	else
+		name_color_cache[player] = name_color.white
+	end
+end
+
+local function setup_name_color_listener(player)
+	local function on_nametag(label)
+		connect_label(player, label)
+		connect(label.ChildAdded, function(child)
+			if child.Name == "TextLabel" then
+				connect_label(player, child)
+			end
+		end)
+	end
+
+	local function on_character(char)
+		local label = find_first_child(char, "NameTag")
+		if label then
+			on_nametag(label)
+		end
+		connect(char.ChildAdded, function(child)
+			if child.Name == "NameTag" then
+				on_nametag(child)
+			end
+		end)
+	end
+
+	if player.Character then
+		on_character(player.Character)
+	end
+	connect(player.CharacterAdded, on_character)
+end
+
+local function update_char_and_hrp(player)
+	local char = ins_get(player, "Character")
+	char_cache[player] = char
+	if char then
+		local hrp = find_first_child(char, "HumanoidRootPart")
+		hrp_cache[player] = hrp
+		if not hrp then
+			connect(char.ChildAdded, function(child)
+				if child.Name == "HumanoidRootPart" then
+					hrp_cache[player] = child
+				end
+			end)
+		end
+	else
+		hrp_cache[player] = nil
+	end
+	update_player_name_color(player)
+end
+
+local function update_all_caches()
+	player_cache = get_players(svc.players)
+	for _, player in player_cache do
+		update_char_and_hrp(player)
+		setup_name_color_listener(player)
+	end
+end
+
+update_all_caches()
+
+for _, player in player_cache do
+	connect(player.CharacterAdded, function()
+		update_char_and_hrp(player)
+	end)
+end
+
+connect(svc.players.PlayerAdded, function(player)
+	table_insert(player_cache, player)
+	update_char_and_hrp(player)
+	setup_name_color_listener(player)
+	connect(player.CharacterAdded, function()
+		update_char_and_hrp(player)
+	end)
+end)
+
+connect(svc.players.PlayerRemoving, function(player)
+	for i, p in player_cache do
+		if p == player then
+			table_remove(player_cache, i)
+			break
+		end
+	end
+	char_cache[player] = nil
+	hrp_cache[player] = nil
+	name_color_cache[player] = nil
+end)
+
+local function get_player_name_color(player)
+	return name_color_cache[player] or name_color.white
+end
+
+local function get_player_name_key(player)
+	local col = get_player_name_color(player)
+	for key, color_val in name_color do
+		if color_val == col then
+			return key
+		end
+	end
+	return "white"
+end
+
 local killaura_func = {
 	get_nearby_targets = function()
 		debug_profilebegin("harpmod.killaura_func.get_nearby_targets")
 		debug_profilebegin("check local_char_and_hrp")
-		local my_char = ins_get(local_player, "Character")
+		local my_char = char_cache[local_player]
 		if not my_char then
 			return {}
 		end
-		local my_hrp = find_first_child(my_char, "HumanoidRootPart")
+		local my_hrp = hrp_cache[local_player]
 		if not my_hrp then
 			return {}
 		end
 		debug_profileend()
 		local targets = {}
-		for _, player in get_players(svc.players) do
-			debug_profilebegin("player_" .. player.Name)
+		for _, player in player_cache do
+			local player_name = player.Name
+			debug_profilebegin("player_" .. player_name)
 			if player == local_player then
 				debug_profileend()
 				continue
 			end
-			local player_char = ins_get(player, "Character")
+			local player_char = char_cache[player]
 			if not player_char then
 				debug_profileend()
 				continue
 			end
-			local hrp = find_first_child(player_char, "HumanoidRootPart")
+			local hrp = hrp_cache[player]
 			if not hrp then
 				debug_profileend()
 				continue
 			end
-			if killaura_whitelist[player.Name] then
+			if killaura_whitelist[player_name] then
 				debug_profileend()
 				continue
 			end
@@ -603,11 +735,11 @@ local killaura_func = {
 				debug_profileend()
 				continue
 			end
-			if #killaura_blacklist > 0 and not table_find(killaura_blacklist, player.Name) then
+			if #killaura_blacklist > 0 and not table_find(killaura_blacklist, player_name) then
 				debug_profileend()
 				continue
 			end
-			local dist = (hrp.Position - my_hrp.Position).Magnitude
+			local dist = (cf_get(hrp.CFrame, "Position") - cf_get(my_hrp.CFrame, "Position")).Magnitude
 			if dist < killaura_settings.radius then
 				table_insert(targets, { player = player, part = hrp })
 			end
@@ -678,7 +810,7 @@ local on_heartbeat = {
 								killaura_settings.last_target_index = 1
 							end
 							local target = targets[killaura_settings.last_target_index]
-							local pos = target.part.Position
+							local pos = cf_get(target.part.CFrame, "Position")
 							local hum = find_first_child(target.part.Parent, "Humanoid")
 							if cast_ray(get_pos, pos) then
 								reload_gun(30)
