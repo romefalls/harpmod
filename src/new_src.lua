@@ -190,7 +190,6 @@ local is_a = ins_get(game, "IsA")
 local raycast = ins_get(svc.ws, "Raycast")
 local heartbeat = ins_get(svc.run, "Heartbeat")
 local render_stepped = ins_get(svc.run, "RenderStepped")
-local wait_for_render_stepped = ins_get(render_stepped,"Wait")
 local connect = heartbeat.Connect
 local get_property_changed_signal = ins_get(game, "GetPropertyChangedSignal")
 local get_children = ins_get(game, "GetChildren")
@@ -364,26 +363,28 @@ local modded_gun = setmetatable({}, {
 	end,
 })
 
-local function world_to_screen(pos)
+local world_to_screen = function(pos)
 	local screen_pos, on_screen = world_to_viewport_point(camera, pos)
 	return v2(screen_pos.X, screen_pos.Y), on_screen
 end
 
 local active_lines = {}
 
-local function draw_ray_line(origin, final, color, transparency)
+local draw_ray_line = function(origin, final, color, transparency)
 	if not killaura_settings.ray_beam.enabled then
 		return
 	end
 	debug_profilebegin("harpmod.draw_ray_line")
-
+	debug_profilebegin("check if_on_screen")
 	local start_2d, on_screen_1 = world_to_screen(origin)
 	local end_2d, on_screen_2 = world_to_screen(final)
+	debug_profileend()
 	if not (on_screen_1 and on_screen_2) then
 		debug_profileend()
 		return
 	end
 
+	debug_profilebegin("line create_and_set")
 	local line = Drawing.new("Line")
 	line.From = start_2d
 	line.To = end_2d
@@ -391,11 +392,11 @@ local function draw_ray_line(origin, final, color, transparency)
 	line.Thickness = 2
 	line.Transparency = transparency or 1
 	line.Visible = true
-
+	debug_profileend()
 	local duration = killaura_settings.ray_beam.animated and 0.5 or 0.1
 	local start_time = os_clock()
-
-	table.insert(active_lines, {
+	debug_profilebegin("line table_insertion")
+	table_insert(active_lines, {
 		line = line,
 		origin = origin,
 		final = final,
@@ -405,7 +406,7 @@ local function draw_ray_line(origin, final, color, transparency)
 		duration = duration,
 		animated = killaura_settings.ray_beam.animated,
 	})
-
+	debug_profileend()
 	debug_profileend()
 end
 
@@ -432,7 +433,7 @@ task.spawn(function()
 				table_remove(active_lines, i)
 			end
 		end
-		wait_for_render_stepped()
+		render_stepped:Wait()
 	end
 end)
 local ray_params = raycast_params()
@@ -570,7 +571,7 @@ local name_color_cache = {}
 
 local color_conn_table = setmetatable({}, { __mode = "k" }) -- weak keys
 
-local function update_player_name_color(player)
+local update_player_name_color = function(player)
 	local char = char_cache[player]
 	local label = char and find_first_child(char, "NameTag")
 	local text_label = label and find_first_child(label, "TextLabel")
@@ -580,9 +581,9 @@ local function update_player_name_color(player)
 		name_color_cache[player] = name_color.white
 	end
 end
-local function connect_label(player, obj)
+local connect_label = function(player, obj)
 	local text_label
-	if is_a(obj,"TextLabel") then -- TODO: use the metamethod instead
+	if is_a(obj,"TextLabel") then
 		text_label = obj
 	else
 		text_label = find_first_child(obj, "TextLabel")
@@ -600,8 +601,8 @@ local function connect_label(player, obj)
 	end
 end
 
-local function setup_name_color_listener(player)
-	local function on_nametag(label)
+local setup_name_color_listener = function(player)
+	local on_nametag = function(label)
 		for _, child in get_children(label) do
 			if child.Name == "TextLabel" then
 				connect_label(player, child)
@@ -614,7 +615,7 @@ local function setup_name_color_listener(player)
 		end)
 	end
 
-	local function on_character(char)
+	local on_character = function(char)
 		for _, child in get_children(char) do
 			if child.Name == "NameTag" then
 				on_nametag(child)
@@ -634,7 +635,7 @@ local function setup_name_color_listener(player)
 	connect(player.CharacterAdded, on_character)
 end
 
-local function update_char_and_hrp(player)
+local update_char_and_hrp = function(player)
 	local char = ins_get(player, "Character")
 	char_cache[player] = char
 	if char then
@@ -653,7 +654,7 @@ local function update_char_and_hrp(player)
 	update_player_name_color(player)
 end
 
-local function update_all_caches()
+local update_all_caches = function()
 	player_cache = get_players(svc.players)
 	for _, player in player_cache do
 		update_char_and_hrp(player)
@@ -690,11 +691,11 @@ connect(svc.players.PlayerRemoving, function(player)
 	name_color_cache[player] = nil
 end)
 
-local function get_player_name_color(player)
+local get_player_name_color = function(player)
 	return name_color_cache[player] or name_color.white
 end
 
-local function get_player_name_key(player)
+local get_player_name_key = function(player)
 	local col = get_player_name_color(player)
 	for key, color_val in name_color do
 		if color_val == col then
