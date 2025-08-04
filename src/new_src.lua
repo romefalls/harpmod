@@ -15,7 +15,7 @@
 local rage = {
 	killaura = true,
 	aimbot = false,
-	auto_reload = true,
+	auto_reload = false, -- lowkey this shit is annoying
 	auto_modder = false,
 	auto_cola = false, -- for normal ones
 	cola_god = false, -- for mythic one
@@ -228,12 +228,12 @@ end
 
 local local_player = ins_get(svc.players, "LocalPlayer")
 
-local note = game_instance.events.Note
 
 local game_instance = {
 	events = svc.rs.Events,
 	player_data = local_player.PlayerData,
 }
+local note = game_instance.events.Note
 
 local game_event = {
 	menu_action = game_instance.events.MenuActionEvent,
@@ -597,29 +597,29 @@ local connect_label = function(player, obj)
 	end
 end
 
-local setup_name_color_listener = function(player)
-	local on_nametag = function(label)
-		for _, child in get_children(label) do
-			if child.Name == "TextLabel" then
-				connect_label(player, child)
-			end
+local on_nametag = function(player, label)
+	for _, child in get_children(label) do
+		if child.Name == "TextLabel" then
+			connect_label(player, child)
 		end
-		connect(label.ChildAdded, function(child)
-			if child.Name == "TextLabel" then
-				connect_label(player, child)
-			end
-		end)
 	end
+	connect(label.ChildAdded, function(child)
+		if child.Name == "TextLabel" then
+			connect_label(player, child)
+		end
+	end)
+end
 
+local setup_name_color_listener = function(player)
 	local on_character = function(char)
 		for _, child in get_children(char) do
 			if child.Name == "NameTag" then
-				on_nametag(child)
+				on_nametag(player, child)
 			end
 		end
 		connect(char.ChildAdded, function(child)
 			if child.Name == "NameTag" then
-				on_nametag(child)
+				on_nametag(player, child)
 			end
 		end)
 		update_player_name_color(player)
@@ -706,7 +706,7 @@ connect(workspace.DescendantAdded, function(descendant)
 		local char = descendant.Parent
 		for _, player in get_players(svc.players) do
 			if char == player.Character then
-				on_nametag(descendant)
+				on_nametag(player, descendant)
 			end
 		end
 	elseif is_a(descendant, "TextLabel") and descendant.Name == "TextLabel" then
@@ -721,7 +721,6 @@ connect(workspace.DescendantAdded, function(descendant)
 		end
 	end
 end)
-
 local killaura_func = {
 	get_nearby_targets = function()
 		debug_profilebegin("harpmod.killaura_func.get_nearby_targets")
@@ -1207,8 +1206,8 @@ toggle.bounty_targeter_silent_target:OnChanged(function()
 	bounty.silent_target = toggle.bounty_targeter_silent_target.Value
 end)
 
-slider.multi_target:OnChanged(function()
-	killaura_settings.multi_target = toggle.multi_target.Value
+slider.killaura.multi_target:OnChanged(function()
+	killaura_settings.multi_target = slider.killaura.multi_target.Value
 end)
 
 note:Fire("success", "ran successfully", 5)
