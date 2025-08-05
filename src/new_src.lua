@@ -848,7 +848,7 @@ local on_heartbeat = {
 								for _ = 1, killaura_settings.shoot_amount do
 									shoot_gun(pos.X, pos.Y, pos.Z, hum)
 								end
-								if not killaura_multi_target then
+								if not killaura_settings.multi_target then
 									break
 								end
 							end
