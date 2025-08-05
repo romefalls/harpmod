@@ -228,7 +228,6 @@ end
 
 local local_player = ins_get(svc.players, "LocalPlayer")
 
-
 local game_instance = {
 	events = svc.rs.Events,
 	player_data = local_player.PlayerData,
@@ -826,6 +825,9 @@ local on_heartbeat = {
 			debug_profilebegin("harpmod.on_heartbeat.killaura")
 			local char = ins_get(local_player, "Character")
 			local hrp = find_first_child(char, "HumanoidRootPart")
+			if not hrp then
+				return
+			end
 			local get_pos = cf_get(hrp.CFrame, "Position")
 			if os_clock() - killaura_settings.last_kill_time > killaura_settings.shoot_delay then
 				killaura_settings.last_kill_time = os_clock()
@@ -1037,7 +1039,10 @@ local slider = { -- i know this says slider, but i dont care anymore
 			Default = false,
 			Tooltip = "If on, killaura will shoot all valid targets at once.",
 		}),
-		lab = groupbox.killaura.sliders:AddLabel('You can get most out of the killaura by having rems or bfists.\nBoth will fire instantly, because the game skips time checks for both. Otherwise leave everything as is.',true),
+		lab = groupbox.killaura.sliders:AddLabel(
+			"You can get most out of the killaura by having rems or bfists.\nBoth will fire instantly, because the game skips time checks for both. Otherwise leave everything as is.",
+			true
+		),
 	},
 	bounty_targeter = {
 		max_price = groupbox.bounty_targeter.stats:AddSlider("max_price", {
