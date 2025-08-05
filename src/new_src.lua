@@ -50,12 +50,6 @@ local reload_settings = {
 	reload_delay = 0, -- s
 }
 
-local transparency = {
-	killaura = {
-		idfk = 0.5,
-	},
-}
-
 local bounty = {
 	target = nil,
 	target_silently = false,
@@ -92,15 +86,8 @@ local tick = tick
 local os_clock = os.clock
 local math_random = math.random
 local math_clamp = math.clamp
-local math_ceil = math.ceil
-local math_floor = math.floor
-local math_abs = math.abs
-local math_lerp = math.lerp -- selene and/or the luau lsp don't know that math.lerp has existed for the past 5 months, why the fuck are you guys asleep?
 local string_char = string.char
-local coroutine_wrap = coroutine.wrap
-local v3int16 = Vector3int16
 local v2 = Vector2.new
-local task_wait = task.wait
 local profile_begin = debug.profilebegin
 local profile_end = debug.profileend
 
@@ -116,12 +103,10 @@ local debug_profileend = function()
 	end
 end
 
-local instance = Instance.new
 local vector3 = Vector3.new
 local color3 = Color3.fromRGB
 local enum = Enum
 local raycast_params = RaycastParams.new
-local angles = CFrame.fromEulerAngles
 local cframe = CFrame.new
 
 local killaura_whitelist = {}
@@ -159,15 +144,6 @@ end, function(f)
 	return f(a, "Name") == b
 end)
 
-local ins_set = get_metamethod_from_error_stack(game, function(a, b, c)
-	a[b] = c
-end, function(f)
-	local a = instance("Folder")
-	local b = random_string()
-	f(a, "Name", b)
-	return a.Name == b
-end)
-
 local find_first_child_of_class = ins_get(game, "FindFirstChildOfClass")
 
 local svc = {
@@ -190,7 +166,6 @@ local connect = heartbeat.Connect
 local get_property_changed_signal = ins_get(game, "GetPropertyChangedSignal")
 local get_children = ins_get(game, "GetChildren")
 local find_first_child = ins_get(game, "FindFirstChild")
-local descendants = ins_get(game, "GetDescendants")
 local world_to_viewport_point = ins_get(camera, "WorldToViewportPoint")
 
 local cf_get = get_metamethod_from_error_stack(cf_0, function(a, b)
@@ -198,33 +173,6 @@ local cf_get = get_metamethod_from_error_stack(cf_0, function(a, b)
 end, function(f)
 	return f(cframe(1, 2, 3), "Position") == vector3(1, 2, 3)
 end)
-local cf_mul = get_metamethod_from_error_stack(cf_0, function(a, b)
-	return a * b
-end, function(f)
-	return angles(1, 2, 3) * angles(1, 2, 3) == f(angles(1, 2, 3), angles(1, 2, 3))
-end)
-local cf_add = get_metamethod_from_error_stack(cf_0, function(a, b)
-	return a + b
-end, function(f)
-	return cframe(1, 2, 3) + vector3(1, 2, 3) == f(cframe(1, 2, 3), vector3(1, 2, 3))
-end)
-local v3_get = get_metamethod_from_error_stack(v3_0, function(a, b)
-	return a[b]
-end, function(f)
-	return vector3(1, 2, 3).Unit == f(vector3(1, 2, 3), "Unit")
-end)
-local v3_lerp = function(a, b, t)
-	return vector3(math_lerp(a.X, b.X, t), math_lerp(a.Y, b.Y, t), math_lerp(a.Z, b.Z, t))
-end
-
-local wait_for_child = function(parent, instance)
-	for _, v in get_children(parent) do
-		if ins_get(v, "Name") == instance then
-			return v
-		end
-	end
-	return nil
-end
 
 local local_player = ins_get(svc.players, "LocalPlayer")
 local local_char = ins_get(local_player, "Character")
@@ -837,7 +785,7 @@ local on_heartbeat = {
 					local targets = killaura_func.get_nearby_targets()
 					if #targets > 0 then
 						local total_targets = #targets
-						for i = 1, total_targets do
+						for _ = 1, total_targets do
 							killaura_settings.last_target_index = killaura_settings.last_target_index + 1
 							if killaura_settings.last_target_index > total_targets then
 								killaura_settings.last_target_index = 1
@@ -967,8 +915,6 @@ local tab = {
 	legit = window:AddTab("Legit"),
 	gun_modder = window:AddTab("Gun Modder"),
 }
-
-local gun_modder_stats = {}
 
 local groupbox = {
 	main = {
