@@ -843,7 +843,7 @@ local on_heartbeat = {
 							local target = targets[killaura_settings.last_target_index]
 							local pos = cf_get(target.part.CFrame, "Position")
 							local hum = find_first_child(target.part.Parent, "Humanoid")
-							if cast_ray(get_pos, pos) then
+							if cast_ray(pos, get_pos) then
 								reload_gun(30)
 								for _ = 1, killaura_settings.shoot_amount do
 									shoot_gun(pos.X, pos.Y, pos.Z, hum)
