@@ -25,4 +25,79 @@ MicroProfiler tests show that on low-end hardware, the loop runs at about 0.5 ms
 whereas on common mid-range hardware, the loop runs at about 0.1 ms averages, 
 just about pushing the limit of what your CPU and/or Roblox can do. 
 
-I'm really proud.
+Here's how the source differs from standard Roblox conventions:
+
+## Caching environment values as local upvalues
+
+```lua
+local os_clock = os.clock
+-- ...
+```
+
+This is done so that the script doesn't have to search the environment for `os`, 
+and so that the script doesn't have to index `os` with `clock`. This is just a pointer to `os.clock`.
+
+While Luau may optimize some global accesses, 
+using local references ensures faster access 
+and can reduce memory pressure by keeping references short-lived.
+
+## Caching players and player characters
+
+```lua
+local player_cache = {}
+local char_cache = {}
+local hrp_cache = {}
+local name_color_cache = {}
+```
+
+Player caching is done so that the killaura doesn't have to call `GetPlayers` per each frame, 
+and check to make sure that each player character has a valid `HumanoidRootPart`, `NameTag`, 
+and `NameTag.TextLabel`. No, by default the killaura doesn't run on every frame but more on that later. 
+
+## Extracting metamethods via error stack introspection
+
+In Luau, certain metamethods (`__index`, `__tostring`, `__call`, ...) 
+are invoked implicitly during operations on userdata. 
+The script uses this to its advantage to dynamically extract 
+these metamethods from a given userdata object 
+without directly inspecting the metatable 
+which could be locked or obfuscated.
+
+This is done using controlled exception handling through `xpcall`, 
+which allows introspection of the call stack to 
+find the function that was invoked implicitly during an operation. 
+Here's what I'm talking about:
+
+```lua
+local get_metamethod_from_error_stack = function(userdata, f, test)
+	local ret = nil
+	xpcall(f, function()
+		ret = debug.info(2, "f")
+	end, userdata, nil, 0)
+	if (type(ret) ~= "function") or not test(ret) then
+		return f
+	end
+	return ret
+end
+```
+
+## Event connection and cache invalidation
+
+The script connects to events such as
+`PlayerAdded`, `PlayerRemoving`, `CharacterAdded`, `ChildAdded`, ..., 
+to maintain up-to-date caches of players, characters, hrp's, and name color tags. 
+This ensures that all targeting and automation logic operates on current data, 
+minimizing the risk of acting on stale or invalid references.
+
+Cache invalidation is handled immediately on player removal or character respawn, 
+preventing memory leaks and logic errors for obvious reasons.
+
+## Micro-optimization and profiling
+
+The script is structured to minimize per-frame allocations, 
+avoid unnecessary table creation, and batch expensive operations. 
+All hot paths are kept as short as possible, with early returns and minimal branching.
+
+Why do I like optimizing to such an extent? My laptop sucks that's why. 
+You can get even better processing times if you have even a 10th gen Intel.
+
