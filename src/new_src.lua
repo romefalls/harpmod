@@ -227,6 +227,11 @@ local wait_for_child = function(parent, instance)
 end
 
 local local_player = ins_get(svc.players, "LocalPlayer")
+local local_char = ins_get(local_player, "Character")
+
+connect(local_player.CharacterAdded, function(new_char)
+    local_char = new_char
+end)
 
 local game_instance = {
 	events = svc.rs.Events,
@@ -370,7 +375,7 @@ local draw_ray_line = function(origin, final, color, transparency)
 		return
 	end
 	debug_profilebegin("harpmod.draw_ray_line")
-	debug_profilebegin("check if_on_screen")
+	debug_profilebegin("check if_on_screen")	
 	local start_2d, on_screen_1 = world_to_screen(origin)
 	local end_2d, on_screen_2 = world_to_screen(final)
 	debug_profileend()
@@ -438,7 +443,7 @@ ray_params.IgnoreWater = true
 local cast_ray = function(origin, final)
 	debug_profilebegin("harpmod.cast_ray")
 	debug_profilebegin("setting properties")
-	local exclude = { local_player.Character, workspace.Vehicles }
+	local exclude = { local_char, workspace.Vehicles }
 	local direction = (final - origin)
 	ray_params.FilterDescendantsInstances = exclude
 	debug_profileend()
@@ -779,8 +784,7 @@ local killaura_func = {
 }
 
 local shoot_gun = function(x, y, z, humanoid)
-	local char = ins_get(local_player, "Character")
-	local tool = find_first_child_of_class(char, "Tool")
+	local tool = find_first_child_of_class(local_char, "Tool")
 	if is_gun(tool) then
 		local args = {
 			[1] = 33,
@@ -810,8 +814,7 @@ local reload_gun = function(amount)
 	if now - reload_settings.last_reload_time < reload_settings.reload_delay then
 		return
 	end
-	local char = ins_get(local_player, "Character")
-	local tool = find_first_child_of_class(char, "Tool")
+	local tool = find_first_child_of_class(local_char, "Tool")
 	if tool then
 		if is_gun(tool) then
 			game_event.reload_action:FireServer(get_ammo_type(tool.Name), amount, tool)
@@ -823,8 +826,7 @@ local on_heartbeat = {
 	killaura = function()
 		if rage.killaura == true then
 			debug_profilebegin("harpmod.on_heartbeat.killaura")
-			local char = ins_get(local_player, "Character")
-			local hrp = find_first_child(char, "HumanoidRootPart")
+			local hrp = find_first_child(local_char, "HumanoidRootPart")
 			if not hrp then
 				return
 			end
