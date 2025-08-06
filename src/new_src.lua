@@ -47,7 +47,7 @@ local killaura_settings = {
 
 local reload_settings = {
 	last_reload_time = 0,
-	reload_delay = 0, -- s
+	reload_delay = 0.12, -- s
 }
 
 local bounty = {
@@ -183,7 +183,7 @@ local local_player = ins_get(svc.players, "LocalPlayer")
 local local_char = ins_get(local_player, "Character")
 
 connect(local_player.CharacterAdded, function(new_char)
-    local_char = new_char
+	local_char = new_char
 end)
 
 local game_instance = {
@@ -328,7 +328,7 @@ local draw_ray_line = function(origin, final, color, transparency)
 		return
 	end
 	debug_profilebegin("harpmod.draw_ray_line")
-	debug_profilebegin("check if_on_screen")	
+	debug_profilebegin("check if_on_screen")
 	local start_2d, on_screen_1 = world_to_screen(origin)
 	local end_2d, on_screen_2 = world_to_screen(final)
 	debug_profileend()
@@ -470,6 +470,16 @@ local is_gun = function(tool)
 	return true
 end
 
+local check_for_gun = function()
+	local tool = find_first_child_of_class(local_char, "Tool")
+	if tool then
+		if is_gun(tool) then
+			return tool
+		end
+	end
+	return false
+end
+
 local target_bounty = function()
 	for _, v in get_players(svc.players) do
 		if find_first_child(svc.players, bounty.target) then
@@ -516,8 +526,6 @@ local modify_gun = function(old_gun, new_gun_name, ammo_type, gun_sound, spread,
 		note:Fire("Done!", "Modding is done. Equip your " .. new_gun_name .. " now", 5)
 	end
 end
-
-
 
 local color_conn_table = setmetatable({}, { __mode = "k" }) -- weak keys
 
@@ -733,21 +741,18 @@ local killaura_func = {
 	end,
 }
 
-local shoot_gun = function(x, y, z, humanoid)
-	local tool = find_first_child_of_class(local_char, "Tool")
-	if is_gun(tool) then
-		local args = {
-			[1] = 33,
-			[2] = cframe(x, y, z),
-			[3] = 2,
-			[4] = humanoid,
-			[5] = 100,
-			[6] = tool,
-			[7] = nil,
-			[8] = 1,
-		}
-		game_event.menu_action:FireServer(unpack(args))
-	end
+local shoot_gun = function(x, y, z, humanoid, tool)
+	local args = {
+		[1] = 33,
+		[2] = cframe(x, y, z),
+		[3] = 2,
+		[4] = humanoid,
+		[5] = 100,
+		[6] = tool,
+		[7] = nil,
+		[8] = 1,
+	}
+	game_event.menu_action:FireServer(unpack(args))
 end
 
 local _swing_melee = function(target_player)
@@ -759,19 +764,15 @@ local _swing_melee = function(target_player)
 	game_event.menu_action:FireServer(unpack(args))
 end
 
-local reload_gun = function(amount)
+local reload_gun = function(tool, amount)
 	local now = os_clock()
 	if now - reload_settings.last_reload_time < reload_settings.reload_delay then
 		return
 	end
-	local tool = find_first_child_of_class(local_char, "Tool")
-	if tool then
-		if is_gun(tool) then
-			game_event.reload_action:FireServer(get_ammo_type(tool.Name), amount, tool)
-			reload_settings.last_reload_time = now
-		end
-	end
+	game_event.reload_action:FireServer(get_ammo_type(tool.Name), amount, tool)
+	reload_settings.last_reload_time = now
 end
+
 local on_heartbeat = {
 	killaura = function()
 		if rage.killaura == true then
@@ -796,12 +797,15 @@ local on_heartbeat = {
 							local pos = cf_get(target.part.CFrame, "Position")
 							local hum = find_first_child(target.part.Parent, "Humanoid")
 							if cast_ray(get_pos, pos) then
-								reload_gun(30)
-								for _ = 1, killaura_settings.shoot_amount do
-									shoot_gun(pos.X, pos.Y, pos.Z, hum)
-								end
-								if not killaura_settings.multi_target then
-									break
+								local tool = check_for_gun()
+								if tool then
+									reload_gun(tool, 30)
+									for _ = 1, killaura_settings.shoot_amount do
+										shoot_gun(pos.X, pos.Y, pos.Z, hum, tool)
+									end
+									if not killaura_settings.multi_target then
+										break
+									end
 								end
 							end
 						end
