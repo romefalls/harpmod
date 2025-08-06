@@ -20,9 +20,12 @@ You have to keep track of:
 
 and the list keeps going on and on.
 
-The killaura loop is my best work yet; running at a max range of 250 and speed of 0, 
-MicroProfiler tests show that on low-end hardware, the loop runs at about 0.5 ms averages, 
-whereas on common mid-range hardware, the loop runs at about 0.1 ms averages, 
+The killaura loop is my best work yet; 
+running at a max range of 250 and speed of 0, 
+MicroProfiler tests show that on low-end hardware, 
+the loop runs at about 0.5 ms averages, 
+whereas on common mid-range hardware, 
+the loop runs at about 0.1 ms averages, 
 just about pushing the limit of what your CPU and/or Roblox can do. 
 
 Here's how the source differs from standard Roblox conventions:
@@ -35,11 +38,13 @@ local os_clock = os.clock
 ```
 
 This is done so that the script doesn't have to search the environment for `os`, 
-and so that the script doesn't have to index `os` with `clock`. This is just a pointer to `os.clock`.
+and so that the script doesn't have to index `os` with `clock`. 
+This is just a pointer to `os.clock`.
 
 While Luau may optimize some global accesses, 
 using local references ensures faster access 
-and can reduce memory pressure by keeping references short-lived.
+and can reduce memory pressure by 
+keeping references short-lived.
 
 ## Caching players and player characters
 
@@ -80,6 +85,15 @@ local get_metamethod_from_error_stack = function(userdata, f, test)
 	return ret
 end
 ```
+
+## What is ins_get?
+
+By extracting the underlying function pointer for a method (like `FindFirstChild`), 
+`ins_get` allows you to call the method directly, bypassing the usual metatable and `__namecall` lookup. 
+This reduces the number of steps that the Lua VM and Roblox engine have to perform for each call. 
+Once the function is extracted, it’s stored in a local variable. 
+Local variables in Lua are much faster to access than globals or table fields, 
+so repeated calls are significantly faster.
 
 ## Event connection and cache invalidation
 
