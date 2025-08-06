@@ -28,10 +28,10 @@ local legit = {
 
 local killaura_settings = {
 	target = {
-		white_names = false,
-		yellow_names = true,
-		red_names = true,
-		govt_workers = false, -- TODO: this is not a be all end all solution! Government workers can still be off duty.
+		white = false,
+		yellow = true,
+		red = true,
+		govt = false, -- TODO: this is not a be all end all solution! Government workers can still be off duty.
 	},
 	ray_beam = {
 		enabled = true,
@@ -720,7 +720,7 @@ local killaura_func = {
 			end
 			debug_profilebegin("check name")
 			local name_key = get_player_name_key(player)
-			local is_allowed_color = killaura_settings.target[name_key .. "_names"] --todo: check if concat sucks
+			local is_allowed_color = killaura_settings.target[name_key] --todo: check if concat sucks
 			debug_profileend()
 			if not is_allowed_color then
 				debug_profileend()
@@ -1076,22 +1076,22 @@ local toggle = {
 	]]
 		name_white = groupbox.killaura.dropdowns:AddToggle("white_names", {
 			Text = "Whitenames",
-			Default = killaura_settings.target.white_names,
+			Default = killaura_settings.target.white,
 			Tooltip = "Killaura will target whitenames if enabled.",
 		}),
 		name_yellow = groupbox.killaura.dropdowns:AddToggle("yellow_names", {
 			Text = "Yellownames",
-			Default = killaura_settings.target.yellow_names,
+			Default = killaura_settings.target.yellow,
 			Tooltip = "Killaura will target yellownames if enabled.",
 		}),
 		name_red = groupbox.killaura.dropdowns:AddToggle("red_names", {
 			Text = "Rednames",
-			Default = killaura_settings.target.red_names,
+			Default = killaura_settings.target.red,
 			Tooltip = "Killaura will target rednames if enabled.",
 		}),
 		name_govt = groupbox.killaura.dropdowns:AddToggle("govt_names", {
 			Text = "Government Workers",
-			Default = killaura_settings.target.govt_names,
+			Default = killaura_settings.target.govt,
 			Tooltip = "Killaura will target government agents (i.e. Soldiers, Detectives, Mayors) if enabled.",
 		}),
 	},
@@ -1134,19 +1134,19 @@ slider.bounty_targeter.max_price:OnChanged(function()
 end)
 
 toggle.killaura_target.name_white:OnChanged(function()
-	killaura_settings.target.white_names = toggle.killaura_target.name_white.Value
+	killaura_settings.target.white = toggle.killaura_target.name_white.Value
 end)
 
 toggle.killaura_target.name_yellow:OnChanged(function()
-	killaura_settings.target.yellow_names = toggle.killaura_target.name_yellow.Value
+	killaura_settings.target.yellow = toggle.killaura_target.name_yellow.Value
 end)
 
 toggle.killaura_target.name_red:OnChanged(function()
-	killaura_settings.target.red_names = toggle.killaura_target.name_red.Value
+	killaura_settings.target.red = toggle.killaura_target.name_red.Value
 end)
 
 toggle.killaura_target.name_govt:OnChanged(function()
-	killaura_settings.target.govt_names = toggle.killaura_target.name_govt.Value
+	killaura_settings.target.govt = toggle.killaura_target.name_govt.Value
 end)
 
 dropdown.killaura_player_whitelist:OnChanged(function()
