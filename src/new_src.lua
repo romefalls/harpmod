@@ -720,7 +720,7 @@ local killaura_func = {
 			end
 			debug_profilebegin("check name")
 			local name_key = get_player_name_key(player)
-			local is_allowed_color = killaura_settings.target[name_key .. "_names"]
+			local is_allowed_color = killaura_settings.target[name_key .. "_names"] --todo: check if concat sucks
 			debug_profileend()
 			if not is_allowed_color then
 				debug_profileend()
