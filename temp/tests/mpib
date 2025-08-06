@@ -1,0 +1,5 @@
+local args = {
+	game:GetService("Players").LocalPlayer.Character:WaitForChild("HumanoidRootPart"),
+	20
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("mpib"):FireServer(unpack(args))
