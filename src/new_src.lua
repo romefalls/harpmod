@@ -396,7 +396,7 @@ ray_params.IgnoreWater = true
 local cast_ray = function(origin, final)
 	debug_profilebegin("harpmod.cast_ray")
 	debug_profilebegin("setting properties")
-	local exclude = { local_char, workspace.Vehicles }
+	local exclude = { local_char, svc.ws.Vehicles }
 	local direction = (final - origin)
 	ray_params.FilterDescendantsInstances = exclude
 	debug_profileend()
@@ -663,7 +663,7 @@ local get_player_name_key = function(player)
 	return "white"
 end
 
-connect(workspace.DescendantAdded, function(descendant)
+connect(svc.ws.DescendantAdded, function(descendant)
 	if descendant.Name == "NameTag" then
 		local char = descendant.Parent
 		for _, player in get_players(svc.players) do
@@ -758,8 +758,8 @@ end
 local _swing_melee = function(target_player)
 	local args = {
 		34, --opcode
-		workspace:FindFirstChild(target_player):WaitForChild("Humanoid"), --unlucky guy's health
-		workspace:FindFirstChild(target_player):WaitForChild("HumanoidRootPart").CFrame, -- unlucky guy's position
+		svc.ws:FindFirstChild(target_player):WaitForChild("Humanoid"), --unlucky guy's health
+		svc.ws:FindFirstChild(target_player):WaitForChild("HumanoidRootPart").CFrame, -- unlucky guy's position
 	}
 	game_event.menu_action:FireServer(unpack(args))
 end
