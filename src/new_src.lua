@@ -363,7 +363,7 @@ local draw_ray_line = function(origin, final, color, transparency)
 	debug_profileend()
 end
 
-task.spawn(function()
+task_spawn(function()
 	while true do
 		local now = os_clock()
 		for i = #active_lines, 1, -1 do
@@ -784,33 +784,31 @@ local on_heartbeat = {
 			local get_pos = cf_get(hrp.CFrame, "Position")
 			if os_clock() - killaura_settings.last_kill_time > killaura_settings.shoot_delay then
 				killaura_settings.last_kill_time = os_clock()
-				task_spawn(function()
-					local targets = killaura_func.get_nearby_targets()
-					if #targets > 0 then
-						local total_targets = #targets
-						for _ = 1, total_targets do
-							killaura_settings.last_target_index = killaura_settings.last_target_index + 1
-							if killaura_settings.last_target_index > total_targets then
-								killaura_settings.last_target_index = 1
-							end
-							local target = targets[killaura_settings.last_target_index]
-							local pos = cf_get(target.part.CFrame, "Position")
-							local hum = find_first_child(target.part.Parent, "Humanoid")
-							if cast_ray(get_pos, pos) then
-								local tool = check_for_gun()
-								if tool then
-									reload_gun(tool, 30)
-									for _ = 1, killaura_settings.shoot_amount do
-										shoot_gun(pos.X, pos.Y, pos.Z, hum, tool)
-									end
-									if not killaura_settings.multi_target then
-										break
-									end
+				local targets = killaura_func.get_nearby_targets()
+				if #targets > 0 then
+					local total_targets = #targets
+					for _ = 1, total_targets do
+						killaura_settings.last_target_index = killaura_settings.last_target_index + 1
+						if killaura_settings.last_target_index > total_targets then
+							killaura_settings.last_target_index = 1
+						end
+						local target = targets[killaura_settings.last_target_index]
+						local pos = cf_get(target.part.CFrame, "Position")
+						local hum = find_first_child(target.part.Parent, "Humanoid")
+						if cast_ray(get_pos, pos) then
+							local tool = check_for_gun()
+							if tool then
+								reload_gun(tool, 30)
+								for _ = 1, killaura_settings.shoot_amount do
+									shoot_gun(pos.X, pos.Y, pos.Z, hum, tool)
+								end
+								if not killaura_settings.multi_target then
+									break
 								end
 							end
 						end
 					end
-				end)
+				end
 			end
 			debug_profileend()
 		end
@@ -825,7 +823,7 @@ local on_heartbeat = {
 			debug_profilebegin("harpmod.on_render_stepped.auto_reload")
 			local gun = check_for_gun()
 			if gun then
-			reload_gun(gun,10)
+				reload_gun(gun, 10)
 			end
 			debug_profileend()
 		end
@@ -899,7 +897,7 @@ end)
 connect(heartbeat, function()
 	debug_profilebegin("harpmod.heartbeat")
 	for _, v in on_heartbeat do
-		task_spawn(v)
+		v() -- i wonder if this even works
 	end
 	debug_profileend()
 end)
