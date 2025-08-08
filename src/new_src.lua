@@ -823,7 +823,10 @@ local on_heartbeat = {
 	auto_reload = function()
 		if rage.auto_reload == true then
 			debug_profilebegin("harpmod.on_render_stepped.auto_reload")
-			reload_gun(10)
+			local gun = check_for_gun()
+			if gun then
+			reload_gun(gun,10)
+			end
 			debug_profileend()
 		end
 	end,
@@ -896,11 +899,7 @@ end)
 connect(heartbeat, function()
 	debug_profilebegin("harpmod.heartbeat")
 	for _, v in on_heartbeat do
-		xpcall(function()
-			task_spawn(v)
-		end, function(err)
-			note:Fire("are you stupid", err, 4)
-		end)
+		task_spawn(v)
 	end
 	debug_profileend()
 end)
@@ -1038,7 +1037,7 @@ local toggle = {
 	}),
 	bounty_targeter_silent_target = groupbox.bounty_targeter.stats:AddToggle("bounty_targeter_silent_target", {
 		Text = "Silent Target",
-		Default = bounty.silent_target,
+		Default = bounty.target_silently,
 		Tooltip = "Will not hire the target themselves.",
 	}),
 	aimbot_on = groupbox.rage.toggles:AddToggle("aimbot_on", {
