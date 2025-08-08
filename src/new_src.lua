@@ -699,7 +699,7 @@ local killaura_func = {
 		local targets = {}
 		for _, player in player_cache do
 			local player_name = player.Name
-			debug_profilebegin("player_" .. player_name)
+			debug_profilebegin(player_name)
 			if player == local_player then
 				debug_profileend()
 				continue
