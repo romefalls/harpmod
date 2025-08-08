@@ -447,7 +447,7 @@ local name_color = {
 	white = color3(255, 255, 255),
 	yellow = color3(255, 187, 69),
 	red = color3(255, 33, 33),
-	government = color3(112, 186, 255),
+	govt = color3(112, 186, 255),
 }
 
 for gun_name, data in modded_gun do
