@@ -88,18 +88,18 @@ local math_random = math.random
 local math_clamp = math.clamp
 local string_char = string.char
 local v2 = Vector2.new
-local profile_begin = debug.profilebegin
-local profile_end = debug.profileend
+local debug_profilebegin = debug.profilebegin
+local debug_profileend = debug.profileend
 
-local debug_profilebegin = function(str)
+local start = function(str)
 	if profiling_enabled then
-		profile_begin(str)
+		debug_profilebegin(str)
 	end
 end
 
-local debug_profileend = function()
+local stop = function()
 	if profiling_enabled then
-		profile_end()
+		debug_profileend()
 	end
 end
 
@@ -161,7 +161,8 @@ local svc = {
 }
 
 local camera = ins_get(svc.ws, "CurrentCamera")
-
+local local_player = ins_get(svc.players, "LocalPlayer")
+local local_char = ins_get(local_player, "Character")
 local get_players = ins_get(svc.players, "GetPlayers")
 local is_a = ins_get(game, "IsA")
 local raycast = ins_get(svc.ws, "Raycast")
@@ -178,9 +179,6 @@ local cf_get = get_metamethod_from_error_stack(cf_0, function(a, b)
 end, function(f)
 	return f(cframe(1, 2, 3), "Position") == vector3(1, 2, 3)
 end)
-
-local local_player = ins_get(svc.players, "LocalPlayer")
-local local_char = ins_get(local_player, "Character")
 
 connect(local_player.CharacterAdded, function(new_char)
 	local_char = new_char
@@ -327,17 +325,17 @@ local draw_ray_line = function(origin, final, color, transparency)
 	if not killaura_settings.ray_beam.enabled then
 		return
 	end
-	debug_profilebegin("harpmod.draw_ray_line")
-	debug_profilebegin("check if_on_screen")
+	start("harpmod.draw_ray_line")
+	start("check if_on_screen")
 	local start_2d, on_screen_1 = world_to_screen(origin)
 	local end_2d, on_screen_2 = world_to_screen(final)
-	debug_profileend()
+	stop()
 	if not (on_screen_1 and on_screen_2) then
-		debug_profileend()
+		stop()
 		return
 	end
 
-	debug_profilebegin("line create_and_set")
+	start("line create_and_set")
 	local line = Drawing.new("Line")
 	line.From = start_2d
 	line.To = end_2d
@@ -345,10 +343,10 @@ local draw_ray_line = function(origin, final, color, transparency)
 	line.Thickness = 2
 	line.Transparency = transparency or 1
 	line.Visible = true
-	debug_profileend()
+	stop()
 	local duration = killaura_settings.ray_beam.animated and 0.5 or 0.1
 	local start_time = os_clock()
-	debug_profilebegin("line table_insertion")
+	start("line table_insertion")
 	table_insert(active_lines, {
 		line = line,
 		origin = origin,
@@ -359,8 +357,8 @@ local draw_ray_line = function(origin, final, color, transparency)
 		duration = duration,
 		animated = killaura_settings.ray_beam.animated,
 	})
-	debug_profileend()
-	debug_profileend()
+	stop()
+	stop()
 end
 
 task_spawn(function()
@@ -394,30 +392,30 @@ ray_params.FilterType = enum.RaycastFilterType.Exclude
 ray_params.IgnoreWater = true
 
 local cast_ray = function(origin, final)
-	debug_profilebegin("harpmod.cast_ray")
-	debug_profilebegin("setting properties")
+	start("harpmod.cast_ray")
+	start("setting properties")
 	local exclude = { local_char, svc.ws.Vehicles }
 	local direction = (final - origin)
 	ray_params.FilterDescendantsInstances = exclude
-	debug_profileend()
-	debug_profilebegin("raycast")
+	stop()
+	start("raycast")
 	local result = raycast(svc.ws, origin, direction, ray_params)
-	debug_profileend()
+	stop()
 	if result then
 		local hit_pos = result.Position
 		local distance_to_target = (hit_pos - final).Magnitude
 		if distance_to_target < 2 then
 			draw_ray_line(origin, hit_pos, color.killaura.found_line_of_sight_and_firing)
-			debug_profileend()
+			stop()
 			return true
 		else
 			draw_ray_line(origin, hit_pos, color.killaura.unable_to_find_line_of_sight, 0.6)
-			debug_profileend()
+			stop()
 			return false
 		end
 	else
 		draw_ray_line(origin, origin + direction, color.killaura.no_result_was_found)
-		debug_profileend()
+		stop()
 		return false
 	end
 end
@@ -483,7 +481,7 @@ end
 local target_bounty = function()
 	for _, v in get_players(svc.players) do
 		if find_first_child(svc.players, bounty.target) then
-			if bounty.silent_target then
+			if bounty.target_silently then
 				return
 			end
 		end
@@ -685,8 +683,8 @@ connect(svc.ws.DescendantAdded, function(descendant)
 end)
 local killaura_func = {
 	get_nearby_targets = function()
-		debug_profilebegin("harpmod.killaura_func.get_nearby_targets")
-		debug_profilebegin("check local_char_and_hrp")
+		start("harpmod.killaura_func.get_nearby_targets")
+		start("check local_char_and_hrp")
 		local my_char = char_cache[local_player]
 		if not my_char then
 			return {}
@@ -695,48 +693,48 @@ local killaura_func = {
 		if not my_hrp then
 			return {}
 		end
-		debug_profileend()
+		stop()
 		local targets = {}
 		for _, player in player_cache do
 			local player_name = player.Name
-			debug_profilebegin(player_name)
+			start(player_name)
 			if player == local_player then
-				debug_profileend()
+				stop()
 				continue
 			end
 			local player_char = char_cache[player]
 			if not player_char then
-				debug_profileend()
+				stop()
 				continue
 			end
 			local hrp = hrp_cache[player]
 			if not hrp then
-				debug_profileend()
+				stop()
 				continue
 			end
 			if killaura_whitelist[player_name] then
-				debug_profileend()
+				stop()
 				continue
 			end
-			debug_profilebegin("check name")
+			start("check name")
 			local name_key = get_player_name_key(player)
 			local is_allowed_color = killaura_settings.target[name_key] --todo: check if concat sucks
-			debug_profileend()
+			stop()
 			if not is_allowed_color then
-				debug_profileend()
+				stop()
 				continue
 			end
 			if #killaura_blacklist > 0 and not table_find(killaura_blacklist, player_name) then
-				debug_profileend()
+				stop()
 				continue
 			end
 			local dist = (cf_get(hrp.CFrame, "Position") - cf_get(my_hrp.CFrame, "Position")).Magnitude
 			if dist < killaura_settings.radius then
 				table_insert(targets, { player = player, part = hrp })
 			end
-			debug_profileend()
+			stop()
 		end
-		debug_profileend()
+		stop()
 		return targets
 	end,
 }
@@ -776,7 +774,7 @@ end
 local on_heartbeat = {
 	killaura = function()
 		if rage.killaura == true then
-			debug_profilebegin("harpmod.on_heartbeat.killaura")
+			start("harpmod.on_heartbeat.killaura")
 			local hrp = find_first_child(local_char, "HumanoidRootPart")
 			if not hrp then
 				return
@@ -810,7 +808,7 @@ local on_heartbeat = {
 					end
 				end
 			end
-			debug_profileend()
+			stop()
 		end
 	end,
 	aimbot = function()
@@ -820,12 +818,12 @@ local on_heartbeat = {
 	end,
 	auto_reload = function()
 		if rage.auto_reload == true then
-			debug_profilebegin("harpmod.on_render_stepped.auto_reload")
+			start("harpmod.on_render_stepped.auto_reload")
 			local gun = check_for_gun()
 			if gun then
 				reload_gun(gun, 10)
 			end
-			debug_profileend()
+			stop()
 		end
 	end,
 	max_hunger = function()
@@ -862,7 +860,7 @@ for _, ammo_name in ammo_type do
 	local ammo_stat = find_first_child(game_instance.player_data, ammo_name)
 	connect(get_property_changed_signal(ammo_stat, "Value"), function()
 		if legit.autobuy == true then
-			debug_profilebegin("harpmod.auto_buy")
+			start("harpmod.auto_buy")
 			if ammo_stat.Value < 20 then
 				local key = ammo_type_to_key[ammo_name]
 				local item_name_in_shop = ammo_type_in_shop[key]
@@ -872,13 +870,13 @@ for _, ammo_name in ammo_type do
 					warn("no matching shop item for", ammo_name)
 				end
 			end
-			debug_profileend()
+			stop()
 		end
 	end)
 end
 
 connect(local_player.Backpack.ChildAdded, function(child) -- TODO: this is unreliable
-	debug_profilebegin("harpmod.lp.bp.ChildAdded.auto_modder")
+	start("harpmod.lp.bp.ChildAdded.auto_modder")
 	if rage.auto_modder == true then
 		if is_gun(child) then
 			local gun_name = child.Name
@@ -891,15 +889,15 @@ connect(local_player.Backpack.ChildAdded, function(child) -- TODO: this is unrel
 			modify_gun(gun_name, new_name, ammo, sound)
 		end
 	end
-	debug_profileend()
+	stop()
 end)
 
 connect(heartbeat, function()
-	debug_profilebegin("harpmod.heartbeat")
+	start("harpmod.heartbeat")
 	for _, v in on_heartbeat do
 		v() -- i wonder if this even works
 	end
-	debug_profileend()
+	stop()
 end)
 
 local window = ui.library:CreateWindow({
@@ -947,11 +945,8 @@ local button = {
 	bounty_targeter = {
 		target = groupbox.bounty_targeter.target:AddButton("target", {
 			Text = "Target player",
-			Tooltip = "Hires everyone in the server.",
-			Func = function()
-				target_bounty()
-			end,
-			[[
+			Tooltip = "Hires everyone in the server against this player.",
+			Func = target_bounty,
 		}),
 	},
 }
@@ -1159,7 +1154,7 @@ toggle.killaura_on:OnChanged(function()
 end)
 
 toggle.bounty_targeter_silent_target:OnChanged(function()
-	bounty.silent_target = toggle.bounty_targeter_silent_target.Value
+	bounty.target_silently = toggle.bounty_targeter_silent_target.Value
 end)
 
 slider.killaura.multi_target:OnChanged(function()
